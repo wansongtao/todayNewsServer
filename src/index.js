@@ -26,13 +26,14 @@ INDEX.webApp.listen(5050, err => {
 });
 
 //注册中间件
-// parse application/x-www-form-urlencoded
+// parse application/x-www-form-urlencoded，接收表单格式数据
 INDEX.webApp.use(INDEX.bodyParser.urlencoded({ extended: false }));
-// parse application/json
+// parse application/json，接收json格式数据
 INDEX.webApp.use(INDEX.bodyParser.json());
 
 //设置请求头
 INDEX.webApp.all('*', (req, res, next) => {
+    //允许跨域
     res.header('Access-Control-Allow-Origin', '*');
     //前端发送了什么样的请求头，后端要设置接住
     res.header("Access-Control-Allow-Headers","content-type, Authorization"); 
