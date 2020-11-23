@@ -9,6 +9,9 @@
  //1.引入express框架
  INDEX.express = require('express');
 
+ //引入中间件模块，用来处理post请求体
+ INDEX.bodyParser = require('body-parser');
+
  //2.创建服务器实例
  INDEX.webApp = INDEX.express();
 
@@ -18,6 +21,9 @@
         console.error('listen(): ', err);
     }
  });
+
+ //注册中间件
+ INDEX.webApp.use(INDEX.bodyParser.urlencoded({extended: false}));
 
  //4.服务器错误处理
  INDEX.webApp.use((err, req, res, next) => {
