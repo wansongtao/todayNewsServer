@@ -68,7 +68,7 @@ PROCESS.login = async ({
                 } else {
                     message = {
                         statusCode: 200,
-                        data: {Authorization: token},
+                        data: {token},
                         message: '登录成功'
                     };
                 }
