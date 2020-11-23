@@ -8,21 +8,27 @@ const ROUTER = {};
 
 ROUTER.express = require('express');
 ROUTER.path = require('path');
+ROUTER.processing = require('../controller/processing');
 
 //创建路由实例
 ROUTER.myRouter = ROUTER.express.Router();
 
 //返回静态资源
-ROUTER.myRouter.use('/upload', ROUTER.express.static(ROUTER.path(__dirname, '../../src/upload')));
+ROUTER.myRouter.use('/upload', ROUTER.express.static(ROUTER.path.join(__dirname, '../../src/upload')));
 
 //定义登录接口
-ROUTER.myRouter.post('/login', (res, req) => {
+ROUTER.myRouter.post('/login', async (req, res) => {
+    // req.query
+    // req.body
+    // req.headers['Authorization']
+    const message = await ROUTER.processing.login(req.body);
 
+    res.send(message);
 });
 
 //定义注册接口
-ROUTER.myRouter.post('register', (res, req) => {
-
+ROUTER.myRouter.post('/register', (req, res) => {
+    res.send('注册');
 });
 
 //导出路由实例

@@ -46,7 +46,7 @@ DATABASE.query = (queryStr, data = []) => {
                             console.error('DATABASEJS.query =>conn.query(): ', err.stack);
                             result = false;
                         }
-
+                        
                         resolve(result);
                     });
                 }
