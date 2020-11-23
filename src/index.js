@@ -34,6 +34,7 @@ INDEX.webApp.use(INDEX.bodyParser.json());
 //设置请求头
 INDEX.webApp.all('*', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
+    //前端发送了什么样的请求头，后端要设置接住
     res.header("Access-Control-Allow-Headers","content-type, Authorization"); 
     next();
 });
