@@ -89,6 +89,68 @@ DATABASE.insert = (queryStr, data = {}) => {
     });
 };
 
+/**
+ * @description 用户注册使用事务向两个表里插入数据
+ * @param {string} queryStr 查询字符串 'insert into tablename set ?'
+ * @param {object} data 要插入占位符中的值，{userName, userPwd}
+ * @param {string} nickName 用户昵称
+ * @returns 返回一个期约对象，成功返回true，失败返回false
+ */
+DATABASE.register = (queryStr, data = {}, nickName) => {
+    return new Promise((resolve, reject) => {
+        if (typeof queryStr !== 'string' || !(data instanceof Object) || typeof nickName !== 'string') {
+            console.error('register(): arguments type error');
+            resolve(false);
+            return;
+        }
 
+        DATABASE.createPool().getConnection((err, conn) => {
+            if (err) {
+                console.error('register() => getConnection(): ', err.stack);
+                resolve(false);
+                return;
+            }
+
+            //事务开始
+            conn.beginTransaction(err => {
+                if (err) {
+                    console.error('register() => beginTransaction(): ', err.stack);
+                    resolve(false);
+                    return;
+                }
+
+                //向用户账号表插入数据
+                conn.query(queryStr, data, (err, result, field) => {
+                    if (err) {
+                        console.error('register() => conn.query(1): ', err.stack);
+                        resolve(false);
+                        return conn.rollback(); //事务回滚
+                    }
+
+                    let userId = result.insertId;
+
+                    //向用户详情表插入数据
+                    conn.query('insert into userdetails set ?', {userId, nickName}, (err, result, field) => {
+                        if (err) {
+                            console.error('register() => conn.query(2): ', err.stack);
+                            resolve(false);
+                            return conn.rollback(); //事务回滚
+                        }
+
+                        conn.commit(err => {
+                            if (err) {
+                                console.error('register() => conn.commit(): ', err.stack);
+                                resolve(false);
+                                return conn.rollback(); //事务回滚
+                            }
+
+                            resolve(true);
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
 
 module.exports = DATABASE;

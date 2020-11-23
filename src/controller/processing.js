@@ -158,7 +158,7 @@ PROCESS.register = async ({
             return message;
         }
 
-        let isSuccess = await PROCESS.database.insert('insert into useraccount set ?', {userName, userPwd});
+        let isSuccess = await PROCESS.database.register('insert into useraccount set ?', {userName, userPwd}, nickName);
 
         if(isSuccess) {
             message = {statusCode: 200, message: '注册成功'};
