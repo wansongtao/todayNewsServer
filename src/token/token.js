@@ -13,7 +13,7 @@ TOKEN.key = 'wansongtao';
 
 /**
  * @description 创建token
- * @param {number} userId 
+ * @param {number} userId 用户id
  * @returns 返回token字符串，生成失败返回false
  */
 TOKEN.createToken = (userId) => {
@@ -42,7 +42,7 @@ TOKEN.createToken = (userId) => {
 
 /**
  * @description 验证token
- * @param {string} token 
+ * @param {string} token 生成的token字符串
  * @returns 返回用户id，验证失败或过期了返回false
  */
 TOKEN.verifyToken = (token) => {
