@@ -26,9 +26,17 @@ INDEX.webApp.listen(5050, err => {
 });
 
 //注册中间件
-INDEX.webApp.use(INDEX.bodyParser.urlencoded({
-    extended: false
-}));
+// parse application/x-www-form-urlencoded
+INDEX.webApp.use(INDEX.bodyParser.urlencoded({ extended: false }));
+// parse application/json
+INDEX.webApp.use(INDEX.bodyParser.json());
+
+//设置请求头
+INDEX.webApp.all('*', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header("Access-Control-Allow-Headers","content-type, Authorization"); 
+    next();
+});
 
 // 注册路由实例，处理请求
 INDEX.webApp.use(INDEX.router);
@@ -50,8 +58,3 @@ INDEX.webApp.use((req, res) => {
     });
 });
 
-//设置跨域
-INDEX.webApp.all('*', (req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    next();
-});
