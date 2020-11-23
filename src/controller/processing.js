@@ -170,4 +170,24 @@ PROCESS.register = async ({
     return message;
 };
 
+/**
+ * @description 获取所有栏目
+ * @returns 返回{statusCode: 200, data: {category: [{ id: 1, name: "游戏" }]}, message: ''}
+ */
+PROCESS.category = async () => {
+    let message = {};
+    let queryStr = 'select categoryId, categoryName from category order by categoryHot desc';
+    let data = await PROCESS.database.query(queryStr);
+
+    if(data === false) {
+        message = {statusCode: 401, message: '服务器繁忙，请稍后再试'};
+    } else if (data.length === 0) {
+        message = {statusCode: 404, message: '服务器繁忙，请稍后再试'};
+    } else {
+        message = {statusCode: 200, data: {category: data}, message: '获取成功'};
+    }
+
+    return message;
+};
+
 module.exports = PROCESS;

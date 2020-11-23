@@ -21,15 +21,22 @@ ROUTER.myRouter.post('/login', async (req, res) => {
     // req.query
     // req.body
     // req.headers['Authorization']
-    let message = {};
+    let message = {statusCode: 400, message: '服务器错误'};
     message = await ROUTER.processing.login(req.body);
     res.send(message);
 });
 
 //定义注册接口
 ROUTER.myRouter.post('/register', async (req, res) => {
-    let message = {};
+    let message = {statusCode: 400, message: '服务器错误'};
     message = await ROUTER.processing.register(req.body);
+    res.send(message);
+});
+
+//栏目接口，返回所有栏目
+ROUTER.myRouter.get('/category', async (req, res) => {
+    let message = {statusCode: 400, message: '服务器错误'};
+    message = await ROUTER.processing.category();
     res.send(message);
 });
 
