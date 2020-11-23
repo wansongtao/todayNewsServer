@@ -43,3 +43,9 @@ INDEX.webApp.use((req, res) => {
         message: '找不到该资源'
     });
 });
+
+//设置跨域
+INDEX.webApp.all('*', (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+});
