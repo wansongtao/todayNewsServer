@@ -10,8 +10,41 @@ PROCESS.database = require('../database/database');
 PROCESS.token = require('../token/token');
 
 /**
+ * @description 检查账号是否注册了
+ * @param {string} userName 用户账号
+ * @returns 返回具体信息 401数据库错误，301没注册，306已注册
+ *  message = {statusCode: 301,message: '用户不存在'};
+ */
+PROCESS.checkUserName = async (userName) => {
+    //查询账号是否注册了
+    let message = {};
+    let queryStr = 'select userId from useraccount where userName = ?';
+
+    let data = await PROCESS.database.query(queryStr, [userName]);
+
+    if (data === false) {
+        message = {
+            statusCode: 401,
+            message: '服务器繁忙，请稍后再试'
+        };
+    } else if (data.length === 0) {
+        message = {
+            statusCode: 301,
+            message: '用户不存在'
+        };
+    } else {
+        message = {
+            statusCode: 306,
+            message: '用户已存在'
+        };
+    }
+
+    return message;
+};
+
+/**
  * @description 登录逻辑处理
- * @param {object} param0 一个请求体参数对象
+ * @param {object} req.body 一个请求体参数对象
  * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
  */
 PROCESS.login = async ({
@@ -26,25 +59,13 @@ PROCESS.login = async ({
         };
     } else {
         //查询账号是否注册了
-        let queryStr = 'select userId from useraccount where userName = ?';
+        message = await PROCESS.checkUserName(userName);
 
-        let data = await PROCESS.database.query(queryStr, [userName]);
-
-        if (data === false) {
-            message = {
-                statusCode: 401,
-                message: '服务器繁忙，请稍后再试'
-            };
-        } else if (data.length === 0) {
-            message = {
-                statusCode: 301,
-                message: '用户不存在'
-            };
-        } else {
+        if (message.statusCode == 306) {
             //查询密码是否正确
-            queryStr = 'select userId from useraccount where userName = ? and userPwd = ?';
+            let queryStr = 'select userId from useraccount where userName = ? and userPwd = ?';
 
-            data = await PROCESS.database.query(queryStr, [userName, userPwd]);
+            let data = await PROCESS.database.query(queryStr, [userName, userPwd]);
 
             if (data === false) {
                 message = {
@@ -60,7 +81,7 @@ PROCESS.login = async ({
                 //生成token
                 const token = PROCESS.token.createToken(data[0].userId);
 
-                if(token === false) {
+                if (token === false) {
                     message = {
                         statusCode: 402,
                         message: '服务器繁忙，请稍后再试'
@@ -68,17 +89,85 @@ PROCESS.login = async ({
                 } else {
                     message = {
                         statusCode: 200,
-                        data: {token},
+                        data: {
+                            token
+                        },
                         message: '登录成功'
                     };
                 }
             }
         }
+
     }
 
     return message;
 };
 
+/**
+ * @description 注册逻辑处理
+ * @param {object} req.body 请求体参数对象
+ * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
+ */
+PROCESS.register = async ({
+    userName,
+    userPwd,
+    nickName
+}) => {
+    let message = {
+        statusCode: '400',
+        data: {},
+        message: '服务器繁忙，请稍后再试'
+    };
 
+    if (typeof userName !== 'string' || typeof userPwd !== 'string' || typeof nickName !== 'string') {
+        message = {
+            statusCode: 300,
+            message: '请求参数错误'
+        };
+    } else {
+        //验证参数格式
+        let regExp = /^[a-zA-Z][a-zA-Z0-9]{2,5}$/;
+
+        if (!regExp.test(userName)) {
+            return {
+                statusCode: 303,
+                message: '用户名格式错误'
+            };
+        }
+
+        regExp = /^[a-zA-Z][\w]{5,15}$/;
+        if (!regExp.test(userPwd)) {
+            return {
+                statusCode: 304,
+                message: '密码格式错误'
+            };
+        }
+
+        regExp = /^[\u4e00-\u9fa5]{2,7}$/;
+        if (!regExp.test(nickName)) {
+            return {
+                statusCode: 305,
+                message: '昵称格式错误'
+            };
+        }
+
+        //判断用户账号是否已注册
+        message = await PROCESS.checkUserName(userName);
+
+        if(message.statusCode != 301) {
+            return message;
+        }
+
+        let isSuccess = await PROCESS.database.insert('insert into useraccount set ?', {userName, userPwd});
+
+        if(isSuccess) {
+            message = {statusCode: 200, message: '注册成功'};
+        } else {
+            message = {statusCode: 403, message: '注册失败'};
+        }
+    }
+
+    return message;
+};
 
 module.exports = PROCESS;

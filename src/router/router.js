@@ -21,14 +21,16 @@ ROUTER.myRouter.post('/login', async (req, res) => {
     // req.query
     // req.body
     // req.headers['Authorization']
-    const message = await ROUTER.processing.login(req.body);
-
+    let message = {};
+    message = await ROUTER.processing.login(req.body);
     res.send(message);
 });
 
 //定义注册接口
-ROUTER.myRouter.post('/register', (req, res) => {
-    res.send('注册');
+ROUTER.myRouter.post('/register', async (req, res) => {
+    let message = {};
+    message = await ROUTER.processing.register(req.body);
+    res.send(message);
 });
 
 //导出路由实例
