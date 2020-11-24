@@ -247,4 +247,65 @@ PROCESS.getNewList = async ({categoryId}) => {
     return message;
 };
 
+/**
+ * @description 获取用户详情
+ * @param {string} token 接收token字符串
+ * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
+ */
+PROCESS.getUserDetails = async ({authorization}) => {
+    let message = {
+        statusCode: '400',
+        data: {},
+        message: '服务器繁忙，请稍后再试'
+    };
+
+    if(typeof authorization !== 'string') {
+        message = {
+            statusCode: '300',
+            data: {},
+            message: '请求头错误'
+        };
+    }
+    else {
+        let userId = PROCESS.token.verifyToken(authorization);
+
+        if(userId === false) {
+            return {
+                statusCode: '500',
+                data: {},
+                message: '用户身份过期，请重新登录'
+            };
+        }
+
+        let queryStr = `select userName, nickName, head_img, gender from userdetails as ud, 
+        useraccount as ua WHERE ud.userId = ua.userId and ud.userId = ?`;
+
+        let data = await PROCESS.database.query(queryStr, [parseInt(userId)]);
+
+        if(data !== false && data.length > 0) {
+            message = {
+                statusCode: '200',
+                data: {userDetail: data[0]},
+                message: '获取成功'
+            };
+        }
+        else if (data === false) {
+            message = {
+                statusCode: '401',
+                data: {},
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+        else {
+            message = {
+                statusCode: '404',
+                data: {},
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+    }
+
+    return message;
+};
+
 module.exports = PROCESS;
