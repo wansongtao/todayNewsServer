@@ -90,6 +90,46 @@ DATABASE.insert = (queryStr, data = {}) => {
 };
 
 /**
+ * @description 修改表数据
+ * @param {string} queryStr 查询字符串 'update tablename set columnName = ? where columnName = ?'
+ * @param {object} data 要插入占位符中的值，{userName, userId}
+ * @returns 返回一个期约对象，成功返回true，失败返回false
+ */
+DATABASE.update = (queryStr, data = []) => {
+    return new Promise((resolve, reject) => {
+        if (typeof queryStr !== 'string' || !(data instanceof Array)) {
+            console.error('update(): arguments type error');
+            resolve(false);
+            return;
+        }
+
+        DATABASE.createPool().getConnection((err, conn) => {
+            if (err) {
+                console.error('update() => getConnection(): ', err.stack);
+                resolve(false);
+                return;
+            }
+
+            conn.query(queryStr, data, (err, result, field) => {
+                conn.release();
+
+                if (err) {
+                    console.error('update() => query(): ', err.stack);
+                    resolve(false);
+                    return;
+                }
+                
+                if(result.affectedRows >= 1) {
+                    resolve(true);
+                }else {
+                    resolve(false);
+                }
+            });
+        });
+    });
+};
+
+/**
  * @description 用户注册使用事务向两个表里插入数据
  * @param {string} queryStr 查询字符串 'insert into tablename set ?'
  * @param {object} data 要插入占位符中的值，{userName, userPwd}
