@@ -154,16 +154,25 @@ PROCESS.register = async ({
         //判断用户账号是否已注册
         message = await PROCESS.checkUserName(userName);
 
-        if(message.statusCode != 301) {
+        if (message.statusCode != 301) {
             return message;
         }
 
-        let isSuccess = await PROCESS.database.register('insert into useraccount set ?', {userName, userPwd}, nickName);
+        let isSuccess = await PROCESS.database.register('insert into useraccount set ?', {
+            userName,
+            userPwd
+        }, nickName);
 
-        if(isSuccess) {
-            message = {statusCode: 200, message: '注册成功'};
+        if (isSuccess) {
+            message = {
+                statusCode: 200,
+                message: '注册成功'
+            };
         } else {
-            message = {statusCode: 403, message: '注册失败'};
+            message = {
+                statusCode: 403,
+                message: '注册失败'
+            };
         }
     }
 
@@ -179,12 +188,24 @@ PROCESS.category = async () => {
     let queryStr = 'select categoryId, categoryName from category order by categoryHot desc';
     let data = await PROCESS.database.query(queryStr);
 
-    if(data === false) {
-        message = {statusCode: 401, message: '服务器繁忙，请稍后再试'};
+    if (data === false) {
+        message = {
+            statusCode: 401,
+            message: '服务器繁忙，请稍后再试'
+        };
     } else if (data.length === 0) {
-        message = {statusCode: 404, message: '服务器繁忙，请稍后再试'};
+        message = {
+            statusCode: 404,
+            message: '服务器繁忙，请稍后再试'
+        };
     } else {
-        message = {statusCode: 200, data: {category: data}, message: '获取成功'};
+        message = {
+            statusCode: 200,
+            data: {
+                category: data
+            },
+            message: '获取成功'
+        };
     }
 
     return message;
@@ -195,36 +216,39 @@ PROCESS.category = async () => {
  * @param {Object} param0 {categoryId} 栏目id，可选参数
  * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
  */
-PROCESS.getNewList = async ({categoryId}) => {
+PROCESS.getNewList = async ({
+    categoryId
+}) => {
     let message = {
         statusCode: '400',
         data: {},
         message: '服务器繁忙，请稍后再试'
     };
 
-    let queryStr = '', data = [];
-    if(categoryId === undefined) {
+    let queryStr = '',
+        data = [];
+    if (categoryId === undefined) {
         //获取所有新闻列表
         queryStr = 'SELECT newsId, newsTitle, newsCover, commentNums from newslists';
 
         data = await PROCESS.database.query(queryStr);
     } else {
         //获取对应栏目的新闻列表
-        if(parseInt(categoryId) === NaN) {
+        if (parseInt(categoryId) === NaN) {
             return {
                 statusCode: '300',
                 data: {},
                 message: '请求参数错误'
             };
         }
-        
+
         queryStr = `SELECT newsId, newsTitle, newsCover, commentNums from newslists where 
         newsId in (select newsId from news_category where categoryId = ?)`;
 
         data = await PROCESS.database.query(queryStr, [categoryId]);
     }
 
-    if(data === false) {
+    if (data === false) {
         message = {
             statusCode: '401',
             data: {},
@@ -239,7 +263,9 @@ PROCESS.getNewList = async ({categoryId}) => {
     } else {
         message = {
             statusCode: '200',
-            data: {newList: data},
+            data: {
+                newList: data
+            },
             message: '获取新闻列表成功'
         };
     }
@@ -252,24 +278,25 @@ PROCESS.getNewList = async ({categoryId}) => {
  * @param {string} token 接收token字符串
  * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
  */
-PROCESS.getUserDetails = async ({authorization}) => {
+PROCESS.getUserDetails = async ({
+    authorization
+}) => {
     let message = {
         statusCode: '400',
         data: {},
         message: '服务器繁忙，请稍后再试'
     };
 
-    if(typeof authorization !== 'string') {
+    if (typeof authorization !== 'string') {
         message = {
             statusCode: '300',
             data: {},
             message: '请求头错误'
         };
-    }
-    else {
+    } else {
         let userId = PROCESS.token.verifyToken(authorization);
 
-        if(userId === false) {
+        if (userId === false) {
             return {
                 statusCode: '500',
                 data: {},
@@ -282,27 +309,135 @@ PROCESS.getUserDetails = async ({authorization}) => {
 
         let data = await PROCESS.database.query(queryStr, [parseInt(userId)]);
 
-        if(data !== false && data.length > 0) {
+        if (data !== false && data.length > 0) {
             message = {
                 statusCode: '200',
-                data: {userDetail: data[0]},
+                data: {
+                    userDetail: data[0]
+                },
                 message: '获取成功'
             };
-        }
-        else if (data === false) {
+        } else if (data === false) {
             message = {
                 statusCode: '401',
                 data: {},
                 message: '服务器繁忙，请稍后再试'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: '404',
                 data: {},
                 message: '服务器繁忙，请稍后再试'
             };
         }
+    }
+
+    return message;
+};
+
+/**
+ * @description 修改用户信息
+ * @param {Object} param0 请求头
+ * @param {Object} param1 请求体
+ * @returns 返回 {statusCode: 200, message: '成功'}
+ */
+PROCESS.editUserInfo = async ({
+    authorization
+}, {
+    userPwd,
+    nickName,
+    head_img,
+    gender
+}) => {
+    let message = {
+        statusCode: '400',
+        data: {},
+        message: '服务器繁忙，请稍后再试'
+    };
+
+    if (typeof authorization !== 'string') {
+        return {
+            statusCode: '300',
+            data: {},
+            message: '请求头错误'
+        };
+    }
+
+    //验证token并获取用户id
+    let userId = PROCESS.token.verifyToken(authorization);
+
+    if (userId === false) {
+        return {
+            statusCode: '500',
+            message: '用户身份过期，请重新登录'
+        };
+    }
+
+    let data = false;
+    if (typeof nickName === 'string') {
+        //修改昵称
+        let regExp = /^[\u4e00-\u9fa5]{2,7}$/;
+
+        if (!regExp.test(nickName)) {
+            return {
+                statusCode: '305',
+                message: '昵称格式错误'
+            };
+        }
+
+        let queryStr = 'update userdetails set nickName = ? where userId = ?;'
+
+        data = await PROCESS.database.update(queryStr, [nickName, userId]);
+    } else if (typeof gender === 'number') {
+        //修改性别
+        let regExp = /^[01]{1}$/;
+
+        if (!regExp.test(gender)) {
+            return {
+                statusCode: '307',
+                message: '性别错误'
+            };
+        }
+
+        let queryStr = 'update userdetails set gender = ? where userId = ?;'
+
+        data = await PROCESS.database.update(queryStr, [gender.toString(), userId]);
+    } else if (typeof userPwd === 'string') {
+        //修改密码
+        let regExp = /^[a-zA-Z][\w]{5,15}$/;
+
+        if (!regExp.test(userPwd)) {
+            return {
+                statusCode: '304',
+                message: '密码格式错误'
+            };
+        }
+
+        let queryStr = 'update useraccount set userPwd = ? where userId = ?;'
+
+        data = await PROCESS.database.update(queryStr, [userPwd, userId]);
+    } else if (typeof head_img === 'string') {
+        // 修改头像路径
+        let queryStr = 'update userdetails set head_img = ? where userId = ?;'
+
+        data = await PROCESS.database.update(queryStr, [head_img, userId]);
+    } else {
+        return {
+            statusCode: '300',
+            message: '参数错误'
+        };
+    }
+
+    if(data === false) {
+        message = {
+            statusCode: '401',
+            message: '服务器繁忙，请稍后再试'
+        };
+    } else {
+        message = {
+            statusCode: '200',
+            message: '修改成功'
+        };
     }
 
     return message;

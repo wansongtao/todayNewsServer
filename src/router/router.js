@@ -54,5 +54,12 @@ ROUTER.myRouter.get('/userdetail', async (req, res) => {
     res.send(message);
 });
 
+//用户信息编辑接口
+ROUTER.myRouter.post('/useredit', async (req, res) => {
+    let message = {statusCode: 400, message: '服务器错误'};
+    message = await ROUTER.processing.editUserInfo(req.headers, req.body);
+    res.send(message);
+});
+
 //导出路由实例
 module.exports = ROUTER.myRouter;
