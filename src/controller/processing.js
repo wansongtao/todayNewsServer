@@ -190,4 +190,61 @@ PROCESS.category = async () => {
     return message;
 };
 
+/**
+ * @description 获取新闻列表
+ * @param {Object} param0 {categoryId} 栏目id，可选参数
+ * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
+ */
+PROCESS.getNewList = async ({categoryId}) => {
+    let message = {
+        statusCode: '400',
+        data: {},
+        message: '服务器繁忙，请稍后再试'
+    };
+
+    let queryStr = '', data = [];
+    if(categoryId === undefined) {
+        //获取所有新闻列表
+        queryStr = 'SELECT newsId, newsTitle, newsCover, commentNums from newslists';
+
+        data = await PROCESS.database.query(queryStr);
+    } else {
+        //获取对应栏目的新闻列表
+        if(parseInt(categoryId) === NaN) {
+            return {
+                statusCode: '300',
+                data: {},
+                message: '请求参数错误'
+            };
+        }
+        
+        queryStr = `SELECT newsId, newsTitle, newsCover, commentNums from newslists where 
+        newsId in (select newsId from news_category where categoryId = ?)`;
+
+        data = await PROCESS.database.query(queryStr, [categoryId]);
+    }
+
+    if(data === false) {
+        message = {
+            statusCode: '401',
+            data: {},
+            message: '服务器繁忙，请稍后再试'
+        };
+    } else if (data.length === 0) {
+        message = {
+            statusCode: '404',
+            data: {},
+            message: '服务器繁忙，请稍后再试'
+        };
+    } else {
+        message = {
+            statusCode: '200',
+            data: {newList: data},
+            message: '获取新闻列表成功'
+        };
+    }
+
+    return message;
+};
+
 module.exports = PROCESS;

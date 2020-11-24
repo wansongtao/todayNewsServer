@@ -40,5 +40,12 @@ ROUTER.myRouter.get('/category', async (req, res) => {
     res.send(message);
 });
 
+//新闻列表接口，返回对应栏目或所有新闻
+ROUTER.myRouter.get('/newslist', async (req, res) => {
+    let message = {statusCode: 400, message: '服务器错误'};
+    message = await ROUTER.processing.getNewList(req.query);
+    res.send(message);
+});
+
 //导出路由实例
 module.exports = ROUTER.myRouter;
