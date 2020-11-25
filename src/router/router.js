@@ -71,9 +71,7 @@ ROUTER.myRouter.post('/updatepwd', async (req, res) => {
 //上传文件接口
 ROUTER.myRouter.post('/uploadfile', async (req, res) => {
     let message = {statusCode: 308, message: '图片上传错误'};
-
     message = await ROUTER.processing.uploadImg(req);
-
     res.send(message);
 });
 
