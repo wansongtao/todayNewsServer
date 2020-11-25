@@ -266,7 +266,7 @@ PROCESS.getNewList = async ({
 
     let data = await PROCESS.database.query(queryStr, queryParams);
 
-    if (data !== false && data.length > 0) {
+    if (data !== false) {
         message = {
             statusCode: '200',
             data: {
@@ -274,12 +274,7 @@ PROCESS.getNewList = async ({
             },
             message: '获取新闻列表成功'
         };   
-    } else if (data.length === 0) {
-        message = {
-            statusCode: '404',
-            message: '未查找到任何数据'
-        };
-    } else {
+    }else {
         message = {
             statusCode: '401',
             message: '服务器繁忙，请稍后再试'

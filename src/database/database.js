@@ -14,7 +14,7 @@ DATABASE.mysql = require('mysql');
  */
 DATABASE.createPool = () => {
     return DATABASE.mysql.createPool({
-        connectionLimit: 5,
+        connectionLimit: 15,
         host: '127.0.0.1',
         user: 'root',
         password: 'password',
