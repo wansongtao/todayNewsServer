@@ -68,5 +68,11 @@ ROUTER.myRouter.post('/updatepwd', async (req, res) => {
     res.send(message);
 });
 
+//上传文件接口
+ROUTER.myRouter.post('/uploadfile', (req, res) => {
+    console.log(req.body);
+    res.send('上传中。。。');
+});
+
 //导出路由实例
 module.exports = ROUTER.myRouter;
