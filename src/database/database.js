@@ -92,7 +92,7 @@ DATABASE.insert = (queryStr, data = {}) => {
 /**
  * @description 修改表数据
  * @param {string} queryStr 查询字符串 'update tablename set columnName = ? where columnName = ?'
- * @param {object} data 要插入占位符中的值，{userName, userId}
+ * @param {Array} data 要插入占位符中的值，{userName, userId}
  * @returns 返回一个期约对象，成功返回true，失败返回false
  */
 DATABASE.update = (queryStr, data = []) => {

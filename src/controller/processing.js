@@ -344,21 +344,18 @@ PROCESS.getUserDetails = async ({
 PROCESS.editUserInfo = async ({
     authorization
 }, {
-    userPwd,
     nickName,
     head_img,
     gender
 }) => {
     let message = {
         statusCode: '400',
-        data: {},
         message: '服务器繁忙，请稍后再试'
     };
 
     if (typeof authorization !== 'string') {
         return {
             statusCode: '300',
-            data: {},
             message: '请求头错误'
         };
     }
@@ -402,21 +399,7 @@ PROCESS.editUserInfo = async ({
         let queryStr = 'update userdetails set gender = ? where userId = ?;'
 
         data = await PROCESS.database.update(queryStr, [gender.toString(), userId]);
-    } else if (typeof userPwd === 'string') {
-        //修改密码
-        let regExp = /^[a-zA-Z][\w]{5,15}$/;
-
-        if (!regExp.test(userPwd)) {
-            return {
-                statusCode: '304',
-                message: '密码格式错误'
-            };
-        }
-
-        let queryStr = 'update useraccount set userPwd = ? where userId = ?;'
-
-        data = await PROCESS.database.update(queryStr, [userPwd, userId]);
-    } else if (typeof head_img === 'string') {
+    }else if (typeof head_img === 'string') {
         // 修改头像路径
         let queryStr = 'update userdetails set head_img = ? where userId = ?;'
 
@@ -437,6 +420,71 @@ PROCESS.editUserInfo = async ({
         message = {
             statusCode: '200',
             message: '修改成功'
+        };
+    }
+
+    return message;
+};
+
+/**
+ * @description 修改密码
+ * @param {Object} param0 请求头对象，应该包含{authorization}这一个参数
+ * @param {Object} param1 请求体对象，应该包含{oldPwd, newPwd}这两个参数
+ * @returns 返回 {statusCode: 200, message: '成功'}
+ */
+PROCESS.updatePwd = async ({authorization}, {oldPwd, newPwd}) => {
+    let message = {statusCode: 400, message: '服务器繁忙，请稍后再试'};
+
+    if(typeof authorization !== 'string' || typeof oldPwd !== 'string' || typeof newPwd !== 'string') {
+        return {
+            statusCode: 300,
+            message: '请求参数错误'
+        };
+    }
+
+    let userId = PROCESS.token.verifyToken(authorization);
+
+    if (userId === false) {
+        return {
+            statusCode: 500,
+            message: '用户身份过期，请重新登录'
+        };
+    }
+
+    //判断用户原密码是否正确
+    let queryStr = 'select userName from useraccount where userId = ? and userPwd = ?';
+
+    let data = await PROCESS.database.query(queryStr, [userId, oldPwd]);
+
+    if(data !== false && data.length > 0) {
+        //原密码正确
+        queryStr = 'update useraccount set userPwd = ? where userId = ?';
+
+        data = await PROCESS.database.update(queryStr, [newPwd, userId]);
+
+        if (data === true) {
+            message = {
+                statusCode: 200,
+                message: '修改成功'
+            };
+        }else {
+            message = {
+                statusCode: 401,
+                message: '修改失败'
+            };
+        }
+    }
+    else if (data.length == 0) {
+        //原密码错误
+        message = {
+            statusCode: 302,
+            message: '原密码错误'
+        };
+    }
+    else {
+        message = {
+            statusCode: 401,
+            message: '服务器繁忙，请稍后再试'
         };
     }
 
