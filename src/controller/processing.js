@@ -506,6 +506,22 @@ PROCESS.uploadImg = async (req) => {
         return message;
     }
 
+    let {authorization} = req.headers;
+
+    if(!authorization) {
+        return {
+            statusCode: 300,
+            message: '请求参数错误'
+        };
+    }
+
+    if(PROCESS.token.verifyToken(authorization) === false) {
+        return {
+            statusCode: 500,
+            message: '用户身份过期，请重新登录'
+        };
+    }
+
     //创建formidable.IncomingForm()对象，需要引入formidable模块
     let form = new PROCESS.formidable.IncomingForm();
 
