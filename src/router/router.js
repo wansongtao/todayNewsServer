@@ -3,12 +3,12 @@
  * @author wansongtao
  * @date 2020-11
  */
-
 const ROUTER = {};
 
 ROUTER.express = require('express');
 ROUTER.path = require('path');
 ROUTER.processing = require('../controller/processing');
+ROUTER.formidable = require('formidable');
 
 //创建路由实例
 ROUTER.myRouter = ROUTER.express.Router();
@@ -65,6 +65,13 @@ ROUTER.myRouter.post('/useredit', async (req, res) => {
 ROUTER.myRouter.post('/updatepwd', async (req, res) => {
     let message = {statusCode: 400, message: '服务器繁忙，请稍后再试'};
     message = await ROUTER.processing.updatePwd(req.headers, req.body);
+    res.send(message);
+});
+
+//上传文件接口
+ROUTER.myRouter.post('/uploadfile', async (req, res) => {
+    let message = {statusCode: 308, message: '图片上传错误'};
+    message = await ROUTER.processing.uploadImg(req);
     res.send(message);
 });
 

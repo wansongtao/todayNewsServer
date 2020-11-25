@@ -8,6 +8,8 @@ const PROCESS = {};
 
 PROCESS.database = require('../database/database');
 PROCESS.token = require('../token/token');
+PROCESS.path = require('path');
+PROCESS.formidable = require('formidable');
 
 /**
  * @description 检查账号是否注册了
@@ -487,6 +489,54 @@ PROCESS.updatePwd = async ({authorization}, {oldPwd, newPwd}) => {
             message: '服务器繁忙，请稍后再试'
         };
     }
+
+    return message;
+};
+
+/**
+ * @description 上传图片
+ * @param {Object} req 请求对象
+ * @returns 返回{statusCode: 200, data: {imgUrl: pathName}, message: '上传成功'}
+ */
+PROCESS.uploadImg = async (req) => {
+    let message = {statusCode: 308, message: '图片上传错误'};
+
+    if(!(req instanceof Object)) {
+        console.error('uploadImg(): arguments type error.');
+        return message;
+    }
+
+    //创建formidable.IncomingForm()对象，需要引入formidable模块
+    let form = new PROCESS.formidable.IncomingForm();
+
+    //设置表单域的编码
+    form.encoding = 'utf-8';
+
+    //设置上传文件存放的文件夹路径
+    form.uploadDir = PROCESS.path.join(__dirname, '../upload/img');
+
+    //保留上传文件的后缀名
+    form.keepExtensions = true;
+
+    //设置上传文件的大小，500kb，默认2M
+    form.maxFieldsSize = 0.5 * 1024 * 1024;
+
+    message = await function getImgPath() {
+        return new Promise((resolve, reject) => {
+            //该方法会转换请求中所包含的表单数据，callback会包含所有字段域和文件信息
+            form.parse(req, (err, fields, files) => {
+                if(err) {
+                    resolve({statusCode: 308, message: '图片上传错误'});
+                }
+                else {
+                    const pathName = '/upload/img/' + PROCESS.path.basename(files.file.path);
+        
+                    resolve({statusCode: 200, data: {imgUrl: pathName}, message: '上传成功'});
+                }
+            });
+
+        });
+    }();
 
     return message;
 };
