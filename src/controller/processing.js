@@ -215,11 +215,13 @@ PROCESS.category = async () => {
 
 /**
  * @description 获取新闻列表
- * @param {Object} param0 {categoryId} 栏目id，可选参数
- * @returns 返回 {statusCode: 200, data: {}, message: '成功'}
+ * @param {Object} param0 {categoryId, currentPage, pageSize} 栏目id、当前页码、每页新闻条数，可选参数
+ * @returns 返回 {statusCode: 200, data: {newList: []}, message: '成功'}
  */
 PROCESS.getNewList = async ({
-    categoryId
+    categoryId,
+    currentPage,
+    pageSize
 }) => {
     let message = {
         statusCode: '400',
@@ -228,47 +230,54 @@ PROCESS.getNewList = async ({
     };
 
     let queryStr = '',
-        data = [];
+        queryParams = [];
+
     if (categoryId === undefined) {
         //获取所有新闻列表
-        queryStr = 'SELECT newsId, newsTitle, newsCover, commentNums from newslists';
-
-        data = await PROCESS.database.query(queryStr);
+        queryStr = 'SELECT newsId, newsTitle, newsCover, commentNums from newslists limit ? offset ?';
     } else {
         //获取对应栏目的新闻列表
         if (parseInt(categoryId) === NaN) {
             return {
                 statusCode: '300',
-                data: {},
                 message: '请求参数错误'
             };
         }
 
         queryStr = `SELECT newsId, newsTitle, newsCover, commentNums from newslists where 
-        newsId in (select newsId from news_category where categoryId = ?)`;
-
-        data = await PROCESS.database.query(queryStr, [categoryId]);
+        newsId in (select newsId from news_category where categoryId = ?) limit ? offset ?`;
+        queryParams.push(parseInt(categoryId));
     }
 
-    if (data === false) {
-        message = {
-            statusCode: '401',
-            data: {},
-            message: '服务器繁忙，请稍后再试'
-        };
-    } else if (data.length === 0) {
-        message = {
-            statusCode: '404',
-            data: {},
-            message: '服务器繁忙，请稍后再试'
-        };
+    if(pageSize === undefined || parseInt(pageSize) === NaN || parseInt(pageSize) < 0) {
+        pageSize = 5;
+        queryParams.push(5);  //默认五条
     } else {
+        queryParams.push(parseInt(pageSize));
+    }
+
+    if(currentPage === undefined || parseInt(currentPage) === NaN || parseInt(currentPage) < 0) {
+        queryParams.push(0);  //默认第一页
+    } else {
+        //页码减一 * 每页条数 = 开始位置
+        currentPage = (parseInt(currentPage) - 1) * parseInt(pageSize);
+        queryParams.push(currentPage);
+    }
+
+    let data = await PROCESS.database.query(queryStr, queryParams);
+
+    if (data !== false) {
         message = {
             statusCode: '200',
             data: {
                 newList: data
             },
             message: '获取新闻列表成功'
+        };   
+    }else {
+        message = {
+            statusCode: '401',
+            message: '服务器繁忙，请稍后再试'
         };
     }
 
@@ -504,6 +513,22 @@ PROCESS.uploadImg = async (req) => {
     if(!(req instanceof Object)) {
         console.error('uploadImg(): arguments type error.');
         return message;
+    }
+
+    let {authorization} = req.headers;
+
+    if(!authorization) {
+        return {
+            statusCode: 300,
+            message: '请求参数错误'
+        };
+    }
+
+    if(PROCESS.token.verifyToken(authorization) === false) {
+        return {
+            statusCode: 500,
+            message: '用户身份过期，请重新登录'
+        };
     }
 
     //创建formidable.IncomingForm()对象，需要引入formidable模块
