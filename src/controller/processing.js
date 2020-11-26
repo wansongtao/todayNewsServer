@@ -4,6 +4,10 @@
  * @date 2020-11
  */
 
+const {
+    resolve
+} = require('path');
+
 const PROCESS = {};
 
 PROCESS.database = require('../database/database');
@@ -249,15 +253,15 @@ PROCESS.getNewList = async ({
         queryParams.push(parseInt(categoryId));
     }
 
-    if(pageSize === undefined || parseInt(pageSize) === NaN || parseInt(pageSize) < 0) {
+    if (pageSize === undefined || parseInt(pageSize) === NaN || parseInt(pageSize) < 0) {
         pageSize = 5;
-        queryParams.push(5);  //默认五条
+        queryParams.push(5); //默认五条
     } else {
         queryParams.push(parseInt(pageSize));
     }
 
-    if(currentPage === undefined || parseInt(currentPage) === NaN || parseInt(currentPage) < 0) {
-        queryParams.push(0);  //默认第一页
+    if (currentPage === undefined || parseInt(currentPage) === NaN || parseInt(currentPage) < 0) {
+        queryParams.push(0); //默认第一页
     } else {
         //页码减一 * 每页条数 = 开始位置
         currentPage = (parseInt(currentPage) - 1) * parseInt(pageSize);
@@ -273,8 +277,8 @@ PROCESS.getNewList = async ({
                 newList: data
             },
             message: '获取新闻列表成功'
-        };   
-    }else {
+        };
+    } else {
         message = {
             statusCode: '401',
             message: '服务器繁忙，请稍后再试'
@@ -410,7 +414,7 @@ PROCESS.editUserInfo = async ({
         let queryStr = 'update userdetails set gender = ? where userId = ?;'
 
         data = await PROCESS.database.update(queryStr, [gender.toString(), userId]);
-    }else if (typeof head_img === 'string') {
+    } else if (typeof head_img === 'string') {
         // 修改头像路径
         let queryStr = 'update userdetails set head_img = ? where userId = ?;'
 
@@ -422,7 +426,7 @@ PROCESS.editUserInfo = async ({
         };
     }
 
-    if(data === false) {
+    if (data === false) {
         message = {
             statusCode: '401',
             message: '服务器繁忙，请稍后再试'
@@ -443,10 +447,18 @@ PROCESS.editUserInfo = async ({
  * @param {Object} param1 请求体对象，应该包含{oldPwd, newPwd}这两个参数
  * @returns 返回 {statusCode: 200, message: '成功'}
  */
-PROCESS.updatePwd = async ({authorization}, {oldPwd, newPwd}) => {
-    let message = {statusCode: 400, message: '服务器繁忙，请稍后再试'};
+PROCESS.updatePwd = async ({
+    authorization
+}, {
+    oldPwd,
+    newPwd
+}) => {
+    let message = {
+        statusCode: 400,
+        message: '服务器繁忙，请稍后再试'
+    };
 
-    if(typeof authorization !== 'string' || typeof oldPwd !== 'string' || typeof newPwd !== 'string') {
+    if (typeof authorization !== 'string' || typeof oldPwd !== 'string' || typeof newPwd !== 'string') {
         return {
             statusCode: 300,
             message: '请求参数错误'
@@ -467,7 +479,7 @@ PROCESS.updatePwd = async ({authorization}, {oldPwd, newPwd}) => {
 
     let data = await PROCESS.database.query(queryStr, [userId, oldPwd]);
 
-    if(data !== false && data.length > 0) {
+    if (data !== false && data.length > 0) {
         //原密码正确
         queryStr = 'update useraccount set userPwd = ? where userId = ?';
 
@@ -478,21 +490,19 @@ PROCESS.updatePwd = async ({authorization}, {oldPwd, newPwd}) => {
                 statusCode: 200,
                 message: '修改成功'
             };
-        }else {
+        } else {
             message = {
                 statusCode: 401,
                 message: '修改失败'
             };
         }
-    }
-    else if (data.length == 0) {
+    } else if (data.length == 0) {
         //原密码错误
         message = {
             statusCode: 302,
             message: '原密码错误'
         };
-    }
-    else {
+    } else {
         message = {
             statusCode: 401,
             message: '服务器繁忙，请稍后再试'
@@ -505,65 +515,90 @@ PROCESS.updatePwd = async ({authorization}, {oldPwd, newPwd}) => {
 /**
  * @description 上传图片
  * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
  * @returns 返回{statusCode: 200, data: {imgUrl: pathName}, message: '上传成功'}
  */
-PROCESS.uploadImg = async (req) => {
-    let message = {statusCode: 308, message: '图片上传错误'};
+PROCESS.uploadImg = async (req, res) => {
+    let message = {
+        statusCode: 308,
+        message: '图片上传错误'
+    };
 
-    if(!(req instanceof Object)) {
-        console.error('uploadImg(): arguments type error.');
-        return message;
-    }
+    let {
+        authorization
+    } = req.headers;
 
-    let {authorization} = req.headers;
-
-    if(!authorization) {
-        return {
+    if (!authorization) {
+        res.send({
             statusCode: 300,
             message: '请求参数错误'
-        };
+        });
+        return;
     }
 
-    if(PROCESS.token.verifyToken(authorization) === false) {
-        return {
+    if (PROCESS.token.verifyToken(authorization) === false) {
+        res.send({
             statusCode: 500,
             message: '用户身份过期，请重新登录'
-        };
+        });
+        return;
     }
 
-    //创建formidable.IncomingForm()对象，需要引入formidable模块
-    let form = new PROCESS.formidable.IncomingForm();
-
-    //设置表单域的编码
-    form.encoding = 'utf-8';
-
-    //设置上传文件存放的文件夹路径
-    form.uploadDir = PROCESS.path.join(__dirname, '../upload/img');
-
-    //保留上传文件的后缀名
-    form.keepExtensions = true;
-
-    //设置上传文件的大小，500kb，默认2M
-    form.maxFieldsSize = 0.5 * 1024 * 1024;
-
-    message = await function getImgPath() {
+    message = await (() => {
         return new Promise((resolve, reject) => {
-            //该方法会转换请求中所包含的表单数据，callback会包含所有字段域和文件信息
-            form.parse(req, (err, fields, files) => {
-                if(err) {
-                    resolve({statusCode: 308, message: '图片上传错误'});
+            //创建formidable.IncomingForm()对象，需要引入formidable模块
+            let form = new PROCESS.formidable();
+
+            //设置表单域的编码
+            form.encoding = 'utf-8';
+
+            //设置上传文件存放的文件夹路径
+            form.uploadDir = PROCESS.path.join(__dirname, '../upload/img');
+
+            //保留上传文件的后缀名
+            form.keepExtensions = true;
+
+            form.maxFieldsSize = 0.5 * 1024 * 1024;
+
+            //设置上传文件的大小，500kb，默认2M
+            form.maxFileSize = 0.5 * 1024 * 1024;
+
+            form.onPart = (part) => {
+                //只允许上传照片
+                if (part.mime.indexOf('image') !== -1) {
+                    // used internally, please do not override!
+                    form.handlePart(part);  //调用这个方法才可以将文件存入磁盘
+                }else {
+                    resolve({statusCode: 309, message: '只能上传照片'});
                 }
-                else {
-                    const pathName = '/upload/img/' + PROCESS.path.basename(files.file.path);
-        
-                    resolve({statusCode: 200, data: {imgUrl: pathName}, message: '上传成功'});
+            };
+
+            form.parse(req, (err, fields, files) => {
+                if (err) {
+                    console.error('form.parse(): ', err);
+                    resolve({
+                        statusCode: 308,
+                        message: '图片上传错误'
+                    });
+                } else {
+                    //如果用户上传的不是照片，files为空对象 => {}
+                    if (files.file !== undefined) {
+                        const pathName = '/upload/img/' + PROCESS.path.basename(files.file.path);
+                        
+                        resolve({
+                            statusCode: 200,
+                            data: {
+                                imgUrl: pathName
+                            },
+                            message: '上传成功'
+                        });
+                    }
                 }
             });
-
         });
-    }();
+    })();
 
-    return message;
+    res.send(message);
 };
 
 module.exports = PROCESS;
