@@ -51,7 +51,7 @@ PROCESS.checkUserName = async (userName) => {
  */
 PROCESS.formidableImg = (req) => {
     return new Promise((resolve, reject) => {
-        //创建formidable.IncomingForm()对象，需要引入formidable模块
+        //创建formidable对象，需要引入formidable模块
         let form = new PROCESS.formidable();
 
         //设置表单域的编码
@@ -63,6 +63,7 @@ PROCESS.formidableImg = (req) => {
         //保留上传文件的后缀名
         form.keepExtensions = true;
 
+        //设置字段的大小
         form.maxFieldsSize = 0.5 * 1024 * 1024;
 
         //设置上传文件的大小，500kb，默认2M
@@ -72,8 +73,8 @@ PROCESS.formidableImg = (req) => {
             //必须要调用form.parse(req, callback)方法 form.parse(req) => form.onPart() => form.parse()的回调callback
             //只允许上传照片
             if (part.mime.indexOf('image') !== -1) {
-                // used internally, please do not override!
-                form.handlePart(part); //调用这个方法才可以将文件存入磁盘
+                //调用这个方法才可以将文件存入磁盘
+                form.handlePart(part); 
             } else {
                 resolve({
                     statusCode: 309,
