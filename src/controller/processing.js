@@ -325,19 +325,21 @@ PROCESS.getNewList = async (req, res) => {
         queryParams.push(parseInt(categoryId));
     }
 
-    if (pageSize === undefined || parseInt(pageSize) === NaN || parseInt(pageSize) < 0) {
+    if (!isNaN(parseInt(pageSize))) {
+        pageSize = Math.abs(parseInt(pageSize));
+        queryParams.push(pageSize);
+    } else {
         pageSize = 5;
         queryParams.push(5); //默认五条
-    } else {
-        queryParams.push(parseInt(pageSize));
     }
 
-    if (currentPage === undefined || parseInt(currentPage) === NaN || parseInt(currentPage) < 0) {
-        queryParams.push(0); //默认第一页
-    } else {
+    if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
         //页码减一 * 每页条数 = 开始位置
-        currentPage = (parseInt(currentPage) - 1) * parseInt(pageSize);
+        currentPage = Math.abs((parseInt(currentPage) - 1)) * pageSize;
         queryParams.push(currentPage);
+        
+    } else {
+        queryParams.push(0); //默认第一页
     }
 
     let data = await PROCESS.database.query(queryStr, queryParams);
@@ -652,6 +654,77 @@ PROCESS.getHotNews = async (req, res) => {
             message: '获取热门新闻列表成功'
         }
     }else {
+        message = {
+            statusCode: 401,
+            message: '服务器繁忙，请稍后再试'
+        };
+    }
+
+    res.send(message);
+};
+
+/**
+ * @description 根据关键字搜索新闻，支持分页
+ * @param {*} req 请求对象
+ * @param {*} res 响应对象
+ */
+PROCESS.searchNews = async (req, res) => {
+    let message = {
+        statusCode: 400,
+        message: '服务器繁忙，请稍后再试'
+    };
+
+    let {keyword, currentPage, pageSize} = req.query;
+
+    if(typeof keyword !== 'string') {
+        message = {
+            statusCode: 300,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        res.send(message);
+        return;
+    }
+
+    let queryStr = `SELECT newsId, nickName, newsTitle, newsCover, commentNums 
+    from newlists WHERE newsTitle LIKE ? limit ? offset ?`;
+    keyword = "%" + keyword + "%";
+
+    let queryParams = [keyword];
+
+    if (!isNaN(parseInt(pageSize))) {
+        queryParams.push(Math.abs(parseInt(pageSize)));
+    }else {
+        queryParams.push(10); //默认一页十条
+    }
+
+    if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+        //页码减一 * 每页条数 = 开始位置
+        let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
+
+        queryParams.push(beginPosi);
+    }else {
+        queryParams.push(0);  //默认第一页
+    }
+
+    let data = await PROCESS.database.query(queryStr, queryParams);
+
+    if(data[0]) {
+        message = {
+            statusCode: 200,
+            data: {
+                newsList: data
+            },
+            message: '搜索成功'
+        };
+    }
+    else if(data.length === 0) {
+        message = {
+            statusCode: 404,
+            message: '未查找到任何相关内容'
+        };
+    }
+    else {
         message = {
             statusCode: 401,
             message: '服务器繁忙，请稍后再试'

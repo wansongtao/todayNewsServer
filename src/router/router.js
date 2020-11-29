@@ -46,5 +46,8 @@ ROUTER.myRouter.post('/uploadfile', ROUTER.processing.uploadImg);
 //热门新闻接口
 ROUTER.myRouter.get('/hotnews', ROUTER.processing.getHotNews);
 
+//搜索新闻接口
+ROUTER.myRouter.get('/searchnews', ROUTER.processing.searchNews);
+
 //导出路由实例
 module.exports = ROUTER.myRouter;
