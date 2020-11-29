@@ -630,4 +630,35 @@ PROCESS.uploadImg = async (req, res) => {
     res.send(message);
 };
 
+/**
+ * @description 获取热门新闻列表
+ * @param {*} req 请求对象
+ * @param {*} res 响应对象
+ */
+PROCESS.getHotNews = async (req, res) => {
+    let message = {
+        statusCode: 400,
+        message: '服务器繁忙，请稍后再试'
+    };
+
+    let queryStr = 'SELECT newsTitle FROM newsdetail ORDER BY newsHot DESC LIMIT 6';
+
+    let data = await PROCESS.database.query(queryStr);
+
+    if(data[0] !== undefined) {
+        message = {
+            statusCode: 200,
+            data: {hotNews: data},
+            message: '获取热门新闻列表成功'
+        }
+    }else {
+        message = {
+            statusCode: 401,
+            message: '服务器繁忙，请稍后再试'
+        };
+    }
+
+    res.send(message);
+};
+
 module.exports = PROCESS;

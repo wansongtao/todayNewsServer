@@ -43,5 +43,8 @@ ROUTER.myRouter.post('/updatepwd', ROUTER.processing.updatePwd);
 //上传文件接口
 ROUTER.myRouter.post('/uploadfile', ROUTER.processing.uploadImg);
 
+//热门新闻接口
+ROUTER.myRouter.get('/hotnews', ROUTER.processing.getHotNews);
+
 //导出路由实例
 module.exports = ROUTER.myRouter;
