@@ -1,56 +1,57 @@
 /**
- * @description 路由模块
+ * @description 路由类
  * @author wansongtao
  * @date 2020-11
  */
-const ROUTER = {};
+class Router {
+    express = require('express');
+    path = require('path');
+    processing = require('../controller/processing');
 
-ROUTER.express = require('express');
-ROUTER.path = require('path');
-ROUTER.processing = require('../controller/processing');
-ROUTER.formidable = require('formidable');
+    //创建路由实例
+    myRouter = this.express.Router();
 
-//创建路由实例
-ROUTER.myRouter = ROUTER.express.Router();
+    constructor() { 
+        //返回静态资源
+        this.myRouter.use('/upload', this.express.static(this.path.join(__dirname, '../../src/upload')));
 
-// req.query
-// req.body
-// req.headers['Authorization']
-//返回静态资源
-ROUTER.myRouter.use('/upload', ROUTER.express.static(ROUTER.path.join(__dirname, '../../src/upload')));
+        //定义登录接口
+        this.myRouter.post('/login', this.processing.login);
 
-//定义登录接口
-ROUTER.myRouter.post('/login', ROUTER.processing.login);
+        //定义注册接口
+        this.myRouter.post('/register', this.processing.register);
 
-//定义注册接口
-ROUTER.myRouter.post('/register', ROUTER.processing.register);
+        //栏目接口，返回所有栏目
+        this.myRouter.get('/category', this.processing.category);
 
-//栏目接口，返回所有栏目
-ROUTER.myRouter.get('/category', ROUTER.processing.category);
+        //新闻列表接口，返回对应栏目的新闻
+        this.myRouter.get('/newslist', this.processing.getNewList);
 
-//新闻列表接口，返回对应栏目的新闻
-ROUTER.myRouter.get('/newslist', ROUTER.processing.getNewList);
+        //用户详情接口
+        this.myRouter.get('/userdetail', this.processing.getUserDetails);
 
-//用户详情接口
-ROUTER.myRouter.get('/userdetail', ROUTER.processing.getUserDetails);
+        //用户信息编辑接口
+        this.myRouter.post('/useredit', this.processing.editUserInfo);
 
-//用户信息编辑接口
-ROUTER.myRouter.post('/useredit', ROUTER.processing.editUserInfo);
+        //修改密码接口
+        this.myRouter.post('/updatepwd', this.processing.updatePwd);
 
-//修改密码接口
-ROUTER.myRouter.post('/updatepwd', ROUTER.processing.updatePwd);
+        //上传文件接口
+        this.myRouter.post('/uploadfile', this.processing.uploadImg);
 
-//上传文件接口
-ROUTER.myRouter.post('/uploadfile', ROUTER.processing.uploadImg);
+        //热门新闻接口
+        this.myRouter.get('/hotnews', this.processing.getHotNews);
 
-//热门新闻接口
-ROUTER.myRouter.get('/hotnews', ROUTER.processing.getHotNews);
+        //搜索新闻接口
+        this.myRouter.get('/searchnews', this.processing.searchNews);
 
-//搜索新闻接口
-ROUTER.myRouter.get('/searchnews', ROUTER.processing.searchNews);
+        //新闻预查询接口
+        this.myRouter.get('/beforesearch', this.processing.beforeSearch);
+    }
+}
 
-//新闻预查询接口
-ROUTER.myRouter.get('/beforesearch', ROUTER.processing.beforeSearch);
+//实例化
+const ROUTERS = new Router();
 
 //导出路由实例
-module.exports = ROUTER.myRouter;
+module.exports = ROUTERS.myRouter;
