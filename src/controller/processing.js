@@ -643,9 +643,28 @@ PROCESS.getHotNews = async (req, res) => {
         message: '服务器繁忙，请稍后再试'
     };
 
-    let queryStr = 'SELECT newsTitle FROM newsdetail ORDER BY newsHot DESC LIMIT 6';
+    let {currentPage, pageSize} = req.query;
 
-    let data = await PROCESS.database.query(queryStr);
+    let queryParams = [];
+
+    if (!isNaN(parseInt(pageSize))) {
+        queryParams.push(Math.abs(parseInt(pageSize)));
+    }else {
+        queryParams.push(6); //默认一页十条
+    }
+
+    if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+        //页码减一 * 每页条数 = 开始位置
+        let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[0];
+
+        queryParams.push(beginPosi);
+    }else {
+        queryParams.push(0);  //默认第一页
+    }
+
+    let queryStr = 'SELECT newsTitle FROM newsdetail ORDER BY newsHot DESC LIMIT ? OFFSET ?';
+
+    let data = await PROCESS.database.query(queryStr, queryParams);
 
     if(data[0] !== undefined) {
         message = {
