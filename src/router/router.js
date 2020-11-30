@@ -49,5 +49,8 @@ ROUTER.myRouter.get('/hotnews', ROUTER.processing.getHotNews);
 //搜索新闻接口
 ROUTER.myRouter.get('/searchnews', ROUTER.processing.searchNews);
 
+//新闻预查询接口
+ROUTER.myRouter.get('/beforesearch', ROUTER.processing.beforeSearch);
+
 //导出路由实例
 module.exports = ROUTER.myRouter;

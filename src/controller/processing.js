@@ -683,6 +683,76 @@ PROCESS.getHotNews = async (req, res) => {
 };
 
 /**
+ * @description 根据关键字搜索相似内容，支持分页
+ * @param {*} req 请求对象
+ * @param {*} res 响应对象
+ */
+PROCESS.beforeSearch = async (req, res) => {
+    let message = {
+        statusCode: 400,
+        message: '服务器繁忙，请稍后再试'
+    };
+
+    let {keyword, currentPage, pageSize} = req.query;
+
+    if(typeof keyword !== 'string') {
+        message = {
+            statusCode: 300,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        res.send(message);
+        return;
+    }
+
+    let queryStr = `SELECT newsTitle from newsdetail WHERE newsTitle LIKE ? limit ? offset ?`;
+    keyword = "%" + keyword + "%";
+
+    let queryParams = [keyword];
+
+    if (!isNaN(parseInt(pageSize))) {
+        queryParams.push(Math.abs(parseInt(pageSize)));
+    }else {
+        queryParams.push(10); //默认一页十条
+    }
+
+    if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+        //页码减一 * 每页条数 = 开始位置
+        let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
+
+        queryParams.push(beginPosi);
+    }else {
+        queryParams.push(0);  //默认第一页
+    }
+
+    let data = await PROCESS.database.query(queryStr, queryParams);
+
+    if(data[0]) {
+        message = {
+            statusCode: 200,
+            data: {
+                maybeNews: data
+            },
+            message: '搜索成功'
+        };
+    }
+    else if(data.length === 0) {
+        message = {
+            statusCode: 201,
+            message: '未查找到任何相关内容'
+        };
+    }
+    else {
+        message = {
+            statusCode: 401,
+            message: '服务器繁忙，请稍后再试'
+        };
+    }
+
+    res.send(message);
+};
+
+/**
  * @description 根据关键字搜索新闻，支持分页
  * @param {*} req 请求对象
  * @param {*} res 响应对象
