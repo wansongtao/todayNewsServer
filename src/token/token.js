@@ -36,6 +36,11 @@ class Token {
         }
     }
 
+    /**
+     * @description 验证token
+     * @param {string} tokens 生成的token字符串
+     * @return 验证成功返回用户id，失败返回false
+     */
     static verifyToken(tokens) {
         let data = '';
 
