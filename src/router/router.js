@@ -8,7 +8,9 @@ class Router {
     path = require('path');
     processing = require('../controller/processing');
 
-    //创建路由实例
+    /**
+     * @description 路由实例
+     */
     myRouter = this.express.Router();
 
     constructor() { 
