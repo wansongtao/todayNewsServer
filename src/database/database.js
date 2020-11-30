@@ -10,17 +10,14 @@ DATABASE.mysql = require('mysql');
 
 /**
  * @description 创建数据库连接池
- * @returns 返回数据库连接池对象
  */
-DATABASE.createPool = () => {
-    return DATABASE.mysql.createPool({
-        connectionLimit: 88,
-        host: '127.0.0.1',
-        user: 'root',
-        password: 'password',
-        database: 'todaynews'
-    });
-};
+DATABASE.createPool = DATABASE.mysql.createPool({
+    connectionLimit: 88,
+    host: '127.0.0.1',
+    user: 'root',
+    password: 'password',
+    database: 'todaynews'
+});
 
 /**
  * @description 在数据库中查询数据
@@ -34,7 +31,7 @@ DATABASE.query = (queryStr, data = []) => {
             console.error('query(): arguments type error');
             resolve(false);
         } else {
-            DATABASE.createPool().getConnection((err, conn) => {
+            DATABASE.createPool.getConnection((err, conn) => {
                 if (err) {
                     console.error('DATABASEJS.query =>getConnection(): ', err.stack);
                     resolve(false);
@@ -67,7 +64,7 @@ DATABASE.insert = (queryStr, data = {}) => {
             console.error('insert(): arguments type error');
             resolve(false);
         } else {
-            DATABASE.createPool().getConnection((err, conn) => {
+            DATABASE.createPool.getConnection((err, conn) => {
                 if (err) {
                     console.error('insert() => getConnection(): ', err.stack);
                     resolve(false);
@@ -103,7 +100,7 @@ DATABASE.update = (queryStr, data = []) => {
             return;
         }
 
-        DATABASE.createPool().getConnection((err, conn) => {
+        DATABASE.createPool.getConnection((err, conn) => {
             if (err) {
                 console.error('update() => getConnection(): ', err.stack);
                 resolve(false);
@@ -144,7 +141,7 @@ DATABASE.register = (queryStr, data = {}, nickName) => {
             return;
         }
 
-        DATABASE.createPool().getConnection((err, conn) => {
+        DATABASE.createPool.getConnection((err, conn) => {
             if (err) {
                 console.error('register() => getConnection(): ', err.stack);
                 resolve(false);
