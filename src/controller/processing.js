@@ -3,7 +3,6 @@
  * @author wansongtao
  * @date 2020-11
  */
-
 const PROCESS = {};
 
 PROCESS.database = require('../database/database');
