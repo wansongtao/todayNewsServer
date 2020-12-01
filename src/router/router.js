@@ -48,6 +48,9 @@ class Router {
 
         //新闻预查询接口
         this.myRouter.get('/beforesearch', processing.beforeSearch);
+
+        //新闻详情接口
+        this.myRouter.get('/getnewcontent', processing.getNewContent);
     }
 
     /**

@@ -767,46 +767,46 @@ class Processing {
             statusCode: 400,
             message: '服务器繁忙，请稍后再试'
         };
-    
+
         let {
             keyword,
             currentPage,
             pageSize
         } = req.query;
-    
+
         if (typeof keyword !== 'string') {
             message = {
                 statusCode: 300,
                 message: '服务器繁忙，请稍后再试'
             };
-    
+
             res.send(message);
             return;
         }
-    
+
         let queryStr = `SELECT newsId, nickName, newsTitle, newsCover, commentNums 
         from newlists WHERE newsTitle LIKE ? limit ? offset ?`;
         keyword = "%" + keyword + "%";
-    
+
         let queryParams = [keyword];
-    
+
         if (!isNaN(parseInt(pageSize))) {
             queryParams.push(Math.abs(parseInt(pageSize)));
         } else {
             queryParams.push(10); //默认一页十条
         }
-    
+
         if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
             //页码减一 * 每页条数 = 开始位置
             let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
-    
+
             queryParams.push(beginPosi);
         } else {
             queryParams.push(0); //默认第一页
         }
-    
+
         let data = await Processing.database.query(queryStr, queryParams);
-    
+
         if (data[0]) {
             message = {
                 statusCode: 200,
@@ -826,7 +826,50 @@ class Processing {
                 message: '服务器繁忙，请稍后再试'
             };
         }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 根据新闻id查询新闻详细内容
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async getNewContent(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {newsId} = req.query;
+
+        if (isNaN(parseInt(newsId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsDate from newlists WHERE newsId = ?';
     
+        let data = await Processing.database.query(queryStr, [parseInt(newsId)]);
+
+        if(data[0]) {
+            message = {
+                statusCode: 200,
+                data: {
+                    newDetails: data[0]
+                },
+                message: '获取新闻详情成功'
+            };
+        }else {
+            message = {
+                statusCode: 404,
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+
         res.send(message);
     }
 }
