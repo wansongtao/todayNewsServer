@@ -841,7 +841,9 @@ class Processing {
             message: '服务器繁忙，请稍后再试'
         };
 
-        let {newsId} = req.query;
+        let {
+            newsId
+        } = req.query;
 
         if (isNaN(parseInt(newsId))) {
             res.send({
@@ -852,10 +854,10 @@ class Processing {
         }
 
         let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsDate from newlists WHERE newsId = ?';
-    
+
         let data = await Processing.database.query(queryStr, [parseInt(newsId)]);
 
-        if(data[0]) {
+        if (data[0]) {
             message = {
                 statusCode: 200,
                 data: {
@@ -863,10 +865,129 @@ class Processing {
                 },
                 message: '获取新闻详情成功'
             };
-        }else {
+        } else {
             message = {
                 statusCode: 404,
                 message: '服务器繁忙，请稍后再试'
+            };
+        }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 关注用户
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async following(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {authorization} = req.headers;
+
+        if(typeof authorization !== 'string') {
+            res.send({
+                statusCode: 310,
+                message: '请先登录！'
+            });
+            return;
+        }
+
+        let userId = Processing.token.verifyToken(authorization);
+        if(userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let {followUserId} = req.query;
+        if (isNaN(parseInt(followUserId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let followDate = new Date(); 
+        followDate = followDate.toISOString().substr(0, 10);
+
+        let queryStr = 'INSERT INTO user_follow set ?';
+        let data = await Processing.database.insert(queryStr, {userId, followUserId, followDate});
+
+        if (data) {
+            message = {
+                statusCode: 200,
+                message: '关注成功'
+            };
+        }
+        else {
+            message = {
+                statusCode: 401,
+                message: '关注失败'
+            };
+        }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 取消关注用户
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async unfollow(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {authorization} = req.headers;
+
+        if(typeof authorization !== 'string') {
+            res.send({
+                statusCode: 310,
+                message: '请先登录！'
+            });
+            return;
+        }
+
+        let userId = Processing.token.verifyToken(authorization);
+        if(userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let {followUserId} = req.query;
+        if (isNaN(parseInt(followUserId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let queryStr = 'delete from user_follow where userId = ? and followUserId = ?';
+        let data = await Processing.database.delete(queryStr, [userId, followUserId]);
+
+        if (data) {
+            message = {
+                statusCode: 200,
+                message: '取消关注成功'
+            };
+        }
+        else {
+            message = {
+                statusCode: 401,
+                message: '取消关注失败'
             };
         }
 

@@ -51,6 +51,12 @@ class Router {
 
         //新闻详情接口
         this.myRouter.get('/getnewcontent', processing.getNewContent);
+
+        //关注用户接口
+        this.myRouter.get('/following', processing.following);
+
+        //取消关注用户接口
+        this.myRouter.get('/unfollow', processing.unfollow);
     }
 
     /**

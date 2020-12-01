@@ -58,7 +58,7 @@ class Database {
      * @param {object} data 要插入占位符中的值，{userName, userPwd}
      * @returns 返回一个期约对象，成功返回true，失败返回false
      */
-    static insert(queryStr, data = []) {
+    static insert(queryStr, data = {}) {
         return new Promise(resolve => {
             if (typeof queryStr !== 'string' || !(data instanceof Object)) {
                 console.error('insert(): arguments type error');
@@ -119,6 +119,41 @@ class Database {
 
                     // 修改的行数是否超过一行，即是否修改了数据库里的数据
                     result.affectedRows >= 1 ? resolve(true) : resolve(false);
+                });
+            });
+        });
+    }
+
+    /**
+     * @description 删除数据
+     * @param {string} queryStr 查询字符串 'delete form tablename where columnname = ?'
+     * @param {Array} data 要插入占位符中的值，[1001]
+     * @returns 返回一个期约对象，成功返回true，失败返回false
+     */
+    static delete(queryStr, data = []) {
+        return new Promise(resolve => {
+            if (typeof queryStr !== 'string' || !(data instanceof Array)) {
+                console.error('Class Database => delete(): arguments type error');
+                resolve(false);
+                return;
+            }
+
+            this.pool.getConnection((err, conn) => {
+                if (err) {
+                    console.error('Class Database => delete() => getConnection(): ', err.stack);
+                    resolve(false);
+                    return;
+                }
+
+                conn.query(queryStr, data, (err, result, field) => {
+                    if (err) {
+                        console.error('Class Database => delete() => query(): ', err.stack);
+                        resolve(false);
+                        return;
+                    }
+
+                    //判断是否删除成功
+                    result.affectedRows > 0 ? resolve(true) : resolve(false);
                 });
             });
         });
