@@ -858,13 +858,61 @@ class Processing {
         let data = await Processing.database.query(queryStr, [parseInt(newsId)]);
 
         if (data[0]) {
-            message = {
-                statusCode: 200,
-                data: {
-                    newDetails: data[0]
-                },
-                message: '获取新闻详情成功'
-            };
+            let {
+                authorization
+            } = req.headers, isFollow = false;
+
+            if (typeof authorization !== 'string') {
+                res.send({
+                    statusCode: 200,
+                    data: {
+                        newDetails: data[0],
+                        isFollow
+                    },
+                    message: '获取新闻详情成功'
+                });
+                return;
+            }
+
+            let userId = Processing.token.verifyToken(authorization);
+            if (userId === false) {
+                res.send({
+                    statusCode: 200,
+                    data: {
+                        newDetails: data[0],
+                        isFollow
+                    },
+                    message: '获取新闻详情成功'
+                });
+                return;
+            }
+
+            queryStr = `SELECT userId from user_follow where userId = ? 
+            and followUserId in (SELECT userId from newlists where newsId = ?)`;
+
+            let followData = await Processing.database.query(queryStr, [userId, newsId]);
+
+            if (followData[0]) {
+                message = {
+                    statusCode: 200,
+                    data: {
+                        newDetails: data[0],
+                        isFollow: true
+                    },
+                    message: '获取新闻详情成功'
+                };
+            } else {
+                message = {
+                    statusCode: 200,
+                    data: {
+                        newDetails: data[0],
+                        isFollow: false
+                    },
+                    message: '获取新闻详情成功'
+                };
+            }
+
+
         } else {
             message = {
                 statusCode: 404,
@@ -886,9 +934,11 @@ class Processing {
             message: '服务器繁忙，请稍后再试'
         };
 
-        let {authorization} = req.headers;
+        let {
+            authorization
+        } = req.headers;
 
-        if(typeof authorization !== 'string') {
+        if (typeof authorization !== 'string') {
             res.send({
                 statusCode: 310,
                 message: '请先登录！'
@@ -897,7 +947,7 @@ class Processing {
         }
 
         let userId = Processing.token.verifyToken(authorization);
-        if(userId === false) {
+        if (userId === false) {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录！'
@@ -905,7 +955,9 @@ class Processing {
             return;
         }
 
-        let {followUserId} = req.query;
+        let {
+            followUserId
+        } = req.query;
         if (isNaN(parseInt(followUserId))) {
             res.send({
                 statusCode: 300,
@@ -914,19 +966,22 @@ class Processing {
             return;
         }
 
-        let followDate = new Date(); 
+        let followDate = new Date();
         followDate = followDate.toISOString().substr(0, 10);
 
         let queryStr = 'INSERT INTO user_follow set ?';
-        let data = await Processing.database.insert(queryStr, {userId, followUserId, followDate});
+        let data = await Processing.database.insert(queryStr, {
+            userId,
+            followUserId,
+            followDate
+        });
 
         if (data) {
             message = {
                 statusCode: 200,
                 message: '关注成功'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: 401,
                 message: '关注失败'
@@ -947,9 +1002,11 @@ class Processing {
             message: '服务器繁忙，请稍后再试'
         };
 
-        let {authorization} = req.headers;
+        let {
+            authorization
+        } = req.headers;
 
-        if(typeof authorization !== 'string') {
+        if (typeof authorization !== 'string') {
             res.send({
                 statusCode: 310,
                 message: '请先登录！'
@@ -958,7 +1015,7 @@ class Processing {
         }
 
         let userId = Processing.token.verifyToken(authorization);
-        if(userId === false) {
+        if (userId === false) {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录！'
@@ -966,7 +1023,9 @@ class Processing {
             return;
         }
 
-        let {followUserId} = req.query;
+        let {
+            followUserId
+        } = req.query;
         if (isNaN(parseInt(followUserId))) {
             res.send({
                 statusCode: 300,
@@ -983,8 +1042,7 @@ class Processing {
                 statusCode: 200,
                 message: '取消关注成功'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: 401,
                 message: '取消关注失败'
