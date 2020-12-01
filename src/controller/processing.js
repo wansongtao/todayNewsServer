@@ -853,21 +853,22 @@ class Processing {
             return;
         }
 
-        let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsDate from newlists WHERE newsId = ?';
+        let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsHot, newsDate from newlists WHERE newsId = ?';
 
         let data = await Processing.database.query(queryStr, [parseInt(newsId)]);
 
         if (data[0]) {
             let {
                 authorization
-            } = req.headers, isFollow = false;
+            } = req.headers, isFollow = false, isLike = false;
 
             if (typeof authorization !== 'string') {
                 res.send({
                     statusCode: 200,
                     data: {
                         newDetails: data[0],
-                        isFollow
+                        isFollow,
+                        isLike
                     },
                     message: '获取新闻详情成功'
                 });
@@ -880,39 +881,35 @@ class Processing {
                     statusCode: 200,
                     data: {
                         newDetails: data[0],
-                        isFollow
+                        isFollow,
+                        isLike
                     },
                     message: '获取新闻详情成功'
                 });
                 return;
             }
 
+            //查询用户是否关注了该新闻
             queryStr = `SELECT userId from user_follow where userId = ? 
             and followUserId in (SELECT userId from newlists where newsId = ?)`;
 
             let followData = await Processing.database.query(queryStr, [userId, newsId]);
+            followData[0] ? isFollow = true : isFollow = false;
 
-            if (followData[0]) {
-                message = {
-                    statusCode: 200,
-                    data: {
-                        newDetails: data[0],
-                        isFollow: true
-                    },
-                    message: '获取新闻详情成功'
-                };
-            } else {
-                message = {
-                    statusCode: 200,
-                    data: {
-                        newDetails: data[0],
-                        isFollow: false
-                    },
-                    message: '获取新闻详情成功'
-                };
-            }
+            //查询用户是否赞了该新闻
+            queryStr = 'SELECT userId from user_like where userId = ? and newsId = ?';
+            let likeData = await Processing.database.query(queryStr, [userId, newsId]);
+            likeData[0] ? isLike = true : isLike = false;
 
-
+            message = {
+                statusCode: 200,
+                data: {
+                    newDetails: data[0],
+                    isFollow,
+                    isLike
+                },
+                message: '获取新闻详情成功'
+            };
         } else {
             message = {
                 statusCode: 404,
