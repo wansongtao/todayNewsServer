@@ -57,6 +57,12 @@ class Router {
 
         //取消关注用户接口
         this.myRouter.get('/unfollow', processing.unfollow);
+
+        //新闻点赞接口
+        this.myRouter.get('/like', processing.like);
+
+        //新闻取消点赞功能
+        this.myRouter.get('/unlike', processing.unLike);
     }
 
     /**

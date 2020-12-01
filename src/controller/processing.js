@@ -1048,6 +1048,131 @@ class Processing {
 
         res.send(message);
     }
+
+    /**
+     * @description 新闻点赞
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async like(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        if (typeof authorization !== 'string') {
+            res.send({
+                statusCode: 310,
+                message: '请先登录！'
+            });
+            return;
+        }
+
+        let userId = Processing.token.verifyToken(authorization);
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let {newsId} = req.query;
+
+        if (isNaN(parseInt(newsId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let queryStr = 'insert into user_like set ?';
+        let likeDate = new Date();
+        likeDate = likeDate.toISOString().substr(0, 10);
+
+        let data = await Processing.database.insert(queryStr, {userId, newsId, likeDate});
+
+        if (data) {
+            message = {
+                statusCode: 200,
+                message: '点赞成功'
+            };
+        }
+        else {
+            message = {
+                statusCode: 401,
+                message: '点赞失败'
+            };
+        }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 新闻取消点赞
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async unLike(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        if (typeof authorization !== 'string') {
+            res.send({
+                statusCode: 310,
+                message: '请先登录！'
+            });
+            return;
+        }
+
+        let userId = Processing.token.verifyToken(authorization);
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let {newsId} = req.query;
+
+        if (isNaN(parseInt(newsId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let queryStr = 'delete from user_like where userId = ? and newsId = ?';
+        let data = await Processing.database.delete(queryStr, [userId, newsId]);
+
+        if (data) {
+            message = {
+                statusCode: 200,
+                message: '取消点赞成功'
+            };
+        }
+        else {
+            message = {
+                statusCode: 401,
+                message: '取消失败'
+            };
+        }
+
+        res.send(message);
+    }
 }
 
 module.exports = Processing;
