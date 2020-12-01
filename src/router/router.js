@@ -10,9 +10,7 @@ class Router {
         const path = require('path');
         const processing = require('../controller/processing');
 
-        /**
-         * @description 路由实例
-         */
+        //路由实例
         this.myRouter = express.Router();
 
         //返回静态资源

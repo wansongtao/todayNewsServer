@@ -4,6 +4,7 @@
  * @date 2020-11
  */
 class MainProgram {
+
     constructor() {
         //1.引入express框架
         const express = require('express');
@@ -49,8 +50,8 @@ class MainProgram {
         webApp.use((err, req, res, next) => {
             console.error('server error: ', err);
             res.status(500).send({
-                statusCode: 500,
-                message: '服务器错误'
+                statusCode: 400,
+                message: '服务器繁忙，请稍后再试'
             });
         });
 
@@ -64,5 +65,5 @@ class MainProgram {
     }
 }
 
-//实例化
+//实例化，即运行主程序
 new MainProgram();
