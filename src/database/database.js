@@ -18,37 +18,28 @@ class Database {
     });
 
     /**
-     * @description 验证参数
-     * @param {*} resolve 期约对象的解决状态
-     * @param {*} reject 期约对象的拒绝状态
-     * @param {string} queryStr 要验证的sql语句
-     * @param {Array} data 要验证的参数 Array type
+     * @description 验证参数类型是否正确
+     * @param {Array} params 要验证的参数数组,格式：[{param: value, type: 'String'}]
+     *  数据类型大写，例如：String、Array、Number、Object（仅支持验证这四种类型）
+     * @returns 所有参数验证类型正确后返回true，错误返回false
      */
-    static _verifyParamsArr_(resolve, reject, queryStr, data) {
-        if (typeof queryStr !== 'string' || !(data instanceof Array)) {
-            //参数错误期约转换为拒绝状态，直接运行catch()方法返回拒绝理由
-            reject('arguments type error');
+    static _verifyParams_(paramArr = []) {
+        try {
+            let typeArr = ['String', 'Array', 'Object', 'Number'];
+
+            return paramArr.every(val => {
+                //val: {param: value, type: 'String'}
+                if (typeArr.indexOf(val.type) === -1) {
+                    console.error('Class Database => _verifyParams_(): type out of range');
+                    return false;
+                }
+
+                return val.param.constructor.toString().indexOf(val.type) != -1;
+            });
+        } catch (ex) {
+            console.error('Class Database => _verifyParams_(): ', ex.message);
+            return false;
         }
-
-        //参数初步正确，运行then方法
-        resolve();
-    }
-
-    /**
-     * @description 验证参数
-     * @param {*} resolve 期约对象的解决状态
-     * @param {*} reject 期约对象的拒绝状态
-     * @param {string} queryStr 要验证的sql语句
-     * @param {object} data 要验证的参数 object
-     */
-    static _verifyParamsObj_(resolve, reject, queryStr, data) {
-        if (typeof queryStr !== 'string' || !(data instanceof Object)) {
-            //参数错误期约转换为拒绝状态，直接运行catch()方法返回拒绝理由
-            reject('arguments type error');
-        }
-
-        //参数初步正确，运行then方法
-        resolve();
     }
 
     /**
@@ -129,8 +120,17 @@ class Database {
      */
     static async query(queryStr, data = []) {
         return new Promise((resolve, reject) => {
+                let paramArr = [{
+                    param: queryStr,
+                    type: 'String'
+                }, {
+                    param: data,
+                    type: 'Array'
+                }];
+
                 //如果转换为拒绝状态，将直接执行catch方法
-                this._verifyParamsArr_(resolve, reject, queryStr, data);
+                //参数验证正确后，转换为解决状态执行then方法；错误，转换为拒绝状态执行catch方法
+                this._verifyParams_(paramArr) === true ? resolve() : reject('arguments type error');
             })
             .then(() => {
                 //如果返回的期约为拒绝状态，将不会执行后面的then方法而是直接返回值
@@ -157,7 +157,16 @@ class Database {
     static async insert(queryStr, data = {}) {
         return new Promise((resolve, reject) => {
                 //如果转换为拒绝状态，将直接执行catch方法
-                this._verifyParamsObj_(resolve, reject, queryStr, data);
+                let paramArr = [{
+                    param: queryStr,
+                    type: 'String'
+                }, {
+                    param: data,
+                    type: 'Object'
+                }];
+
+                //参数验证正确后，转换为解决状态执行then方法；错误，转换为拒绝状态执行catch方法
+                this._verifyParams_(paramArr) === true ? resolve() : reject('argument type error');
             })
             .then(() => {
                 //如果返回的期约为拒绝状态，将不会执行后面的then方法而是直接返回值
@@ -180,9 +189,19 @@ class Database {
      */
     static async update(queryStr, data = []) {
         return new Promise((resolve, reject) => {
-                this._verifyParamsArr_(resolve, reject, queryStr, data);
+                let paramArr = [{
+                    param: queryStr,
+                    type: 'String'
+                }, {
+                    param: data,
+                    type: 'Array'
+                }];
+
+                //参数验证正确后，转换为解决状态执行then方法；错误，转换为拒绝状态执行catch方法
+                this._verifyParams_(paramArr) === true ? resolve() : reject('arguments type error');
             })
             .then(() => {
+                //如果返回的期约为拒绝状态，将不会执行后面的then方法而是直接返回值
                 return this._getPool_();
             })
             .then((conn) => {
@@ -202,9 +221,19 @@ class Database {
      */
     static async delete(queryStr, data = []) {
         return new Promise((resolve, reject) => {
-                this._verifyParamsArr_(resolve, reject, queryStr, data);
+                let paramArr = [{
+                    param: queryStr,
+                    type: 'String'
+                }, {
+                    param: data,
+                    type: 'Array'
+                }];
+
+                //参数验证正确后，转换为解决状态执行then方法；错误，转换为拒绝状态执行catch方法
+                this._verifyParams_(paramArr) === true ? resolve() : reject('arguments type error');
             })
             .then(() => {
+                //如果返回的期约为拒绝状态，将不会执行后面的then方法而是直接返回值
                 return this._getPool_();
             })
             .then(conn => {
@@ -225,12 +254,22 @@ class Database {
      */
     static async register(queryStr, data = {}, nickName) {
         return new Promise((resolve, reject) => {
-                if (typeof queryStr !== 'string' || !(data instanceof Object) || typeof nickName !== 'string') {
-                    reject('arguments type error');
-                }
-                resolve();
+                let paramArr = [{
+                    param: queryStr,
+                    type: 'String'
+                }, {
+                    param: data,
+                    type: 'Object'
+                }, {
+                    param: nickName,
+                    type: 'String'
+                }];
+
+                //参数验证正确后，转换为解决状态执行then方法；错误，转换为拒绝状态执行catch方法
+                this._verifyParams_(paramArr) === true ? resolve() : reject('arguments type error');
             })
             .then(() => {
+                //如果返回的期约为拒绝状态，将不会执行后面的then方法而是直接返回值
                 return this._getPool_();
             })
             .then(conn => {
