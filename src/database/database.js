@@ -113,6 +113,69 @@ class Database {
     }
 
     /**
+     * @description 使用事务模式对数据库执行增删改
+     * @param {*} conn 开始了事务的数据库连接
+     * @param {*} queryStr sql语句
+     * @param {*} data 要插入sql语句中的值
+     * @returns 返回一个期约对象，操作成功返回结果 resolve(result)，失败返回 reject(false)并回滚事务
+     */
+    static _transactionChangeData_(conn, queryStr, data) {
+        return new Promise((resolve, reject) => {
+            conn.query(queryStr, data, (err, result, field) => {
+                if (err) {
+                    console.error('Class Database => _transactionChangeData_() => query(): ', err.stack);
+                    reject(false);
+                    conn.rollback(); //事务回滚
+                }
+
+                resolve(result);
+            });
+        });
+    }
+
+    /**
+     * @description 提交事务
+     * @param {*} conn 一个开始了事务的数据库连接
+     * @returns 返回一个期约对象，操作成功返回结果 resolve(true))，失败返回 reject(false)并回滚事务
+     */
+    static _commit_(conn) {
+        return new Promise((resolve, reject) => {
+            conn.commit(err => {
+                if (err) {
+                    console.error('Class Database => _commit_() => conn.commit(): ', err.stack);
+                    reject(false);
+                    conn.rollback(); //事务回滚
+                }
+
+                resolve(true);
+            });
+        });
+    }
+
+    /**
+     * @description 开始一个事务
+     * @param {*} conn 数据库连接
+     * @param {*} queryStr sql语句
+     * @param {*} data 要插入sql语句中的值
+     * @param {*} nickName 要插入sql语句中的值
+     * @returns 返回一个期约对象，操作成功返回一个开始了事务的数据库连接 resolve(conn)，
+     * 失败返回 reject(false)
+     */
+    static async _transaction_(conn) {
+        return new Promise((resolve, reject) => {
+            conn.beginTransaction(err => {
+                if (err) {
+                    //开始一个事务失败，期约转换为拒绝状态，执行catch方法
+                    console.error('Class Database => _transaction_(): ', err.stack);
+                    reject(err);
+                }
+
+                resolve(conn);
+            });
+        });
+    }
+
+    /**
      * @description 在数据库中查询数据
      * @param {string} queryStr sql语句，例如：'select * from useraccount where userName = ?'
      * @param {Array} data 要替代占位符(?)的值， [userName]
@@ -253,6 +316,11 @@ class Database {
      * @returns 返回一个期约对象，成功返回true，失败返回false
      */
     static async register(queryStr, data = {}, nickName) {
+        /**
+         * @description 保存数据库连接
+         */
+        let connection = {};
+
         return new Promise((resolve, reject) => {
                 let paramArr = [{
                     param: queryStr,
@@ -273,56 +341,34 @@ class Database {
                 return this._getPool_();
             })
             .then(conn => {
-                return new Promise((resolve, reject) => {
-                    //开始事务
-                    conn.beginTransaction(err => {
-                        if (err) {
-                            console.error('Class Database => register() => beginTransaction(): ', err.stack);
-                            reject(false);
-                            return;
-                        }
+                //开始一个事务
+                connection = conn;
+                return this._transaction_(connection);
+            })
+            .then(connection => {
+                //向用户账号表插入数据
+                return this._transactionChangeData_(connection, queryStr, data);
+            })
+            .then((result) => {
+                //插入成功后会返回插入行的id
+                let userId = result.insertId;
 
-                        //向用户账号表插入数据
-                        conn.query(queryStr, data, (err, result, field) => {
-                            if (err) {
-                                console.error('Class Database => register() => conn.query(1): ', err.stack);
-                                reject(false);
-                                return conn.rollback(); //事务回滚
-                            }
-
-                            //插入成功后会返回插入行的id
-                            let userId = result.insertId;
-
-                            //向用户详情表插入数据
-                            conn.query('insert into userdetails set ?', {
-                                userId,
-                                nickName
-                            }, (err, result, field) => {
-                                if (err) {
-                                    console.error('Class Database => register() => conn.query(2): ', err.stack);
-                                    reject(false);
-                                    return conn.rollback(); //事务回滚
-                                }
-
-                                conn.commit(err => {
-                                    if (err) {
-                                        console.error('Class Database => register() => conn.commit(): ', err.stack);
-                                        reject(false);
-                                        return conn.rollback(); //事务回滚
-                                    }
-
-                                    resolve(true);
-                                });
-                            });
-                        });
-                    });
+                //向用户详情表插入数据
+                return this._transactionChangeData_(connection, 'insert into userdetails set ?', {
+                    userId,
+                    nickName
                 });
+            })
+            .then(() => {
+                //提交事务
+                return this._commit_(connection);
             })
             .catch(err => {
                 console.error(`Class Database => register(): ${err}`);
                 return false;
             });
     }
+
 }
 
 module.exports = Database;
