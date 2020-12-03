@@ -23,7 +23,7 @@ class Processing {
             return paramArr.every(val => {
                 //val: {param: value, type: 'String'} 判断类型是否在范围内
                 if (typeArr.indexOf(val.type) === -1) {
-                    console.error('Class Database => _verifyParams_(): type out of range');
+                    console.error('Class Processing => _verifyParams_(): type out of range');
                     return false;
                 }
 
@@ -31,7 +31,7 @@ class Processing {
                 return val.param.constructor.toString().indexOf(val.type) != -1;
             });
         } catch (ex) {
-            console.error('Class Database => _verifyParams_(): ', ex.message);
+            console.error('Class Processing => _verifyParams_(): ', ex.message);
             return false;
         }
     }
