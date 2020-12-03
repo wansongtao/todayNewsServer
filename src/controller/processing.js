@@ -1,3 +1,7 @@
+const {
+    update
+} = require('../database/database');
+
 /**
  * @description 逻辑处理类
  * @author wansongtao
@@ -70,35 +74,6 @@ class Processing {
     }
 
     /**
-     * @description 数据库相关操作
-     * @param {String} queryStr sql语句
-     * @param {object} data 要插入sql语句中的值
-     */
-    static async _databaseProcess_(queryStr, data) {
-        let returnData;
-
-        try {
-            returnData = await Processing.database.query(queryStr, data);
-
-            if (data.length === 0) {
-                message = {
-                    statusCode: 302,
-                    message: '密码错误'
-                };
-            } else if (returnData === false) {
-                message = {
-                    statusCode: 401,
-                    message: '服务器繁忙，请稍后再试'
-                };
-            }
-        } catch (ex) {
-            console.error('Class Processing => _databaseProcess_(): ', ex.message);
-        } finally {
-            return returnData;
-        }
-    }
-
-    /**
      * @description 创建token
      * @param {Number} userId 用户id
      * @returns 创建成功返回 {statusCode: 200, data: {token}, message: '登录成功'}
@@ -115,18 +90,19 @@ class Processing {
 
         const token = Processing.token.createToken(userId);
 
-        if (token === false) {
-            message = {
-                statusCode: 402,
-                message: '服务器繁忙，请稍后再试'
-            };
-        } else {
+        if (token !== false) {
             message = {
                 statusCode: 200,
                 data: {
                     token
                 },
                 message: '登录成功'
+            };
+
+        } else {
+            message = {
+                statusCode: 402,
+                message: '服务器繁忙，请稍后再试'
             };
         }
 
@@ -156,6 +132,41 @@ class Processing {
         } catch (ex) {
             console.error('Class Processing => _regExpVerify_(): ', ex.message);
             return ex.message;
+        }
+    }
+
+    /**
+     * @description 分页相关操作
+     * @param {array} queryParams 要放入sql语句中的参数数组
+     * @param {*} pageSize 每页大小
+     * @param {*} currentPage 页码
+     * @param {number} defSize 默认每页条数
+     * @param {number} defPage 默认页码
+     * @returns 返回一个放入了每页大小和页码的数组
+     */
+    static _paging_(queryParams, pageSize, currentPage, defSize, defPage) {
+        try {
+            if (!isNaN(parseInt(pageSize))) {
+                pageSize = Math.abs(parseInt(pageSize));
+                queryParams.push(pageSize);
+            } else {
+                pageSize = defSize;
+                queryParams.push(pageSize); //默认五条
+            }
+
+            if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+                //页码减一 * 每页条数 = 开始位置
+                currentPage = Math.abs((parseInt(currentPage) - 1)) * pageSize;
+                queryParams.push(currentPage);
+
+            } else {
+                queryParams.push(defPage); //默认第一页
+            }
+
+            return queryParams;
+        } catch (ex) {
+            console.error('Class Processing => _paging_(): ', ex.message);
+            return [10, 0];
         }
     }
 
@@ -407,40 +418,6 @@ class Processing {
     }
 
     /**
-     * @description 分页相关操作
-     * @param {array} queryParams 要放入sql语句中的参数数组
-     * @param {*} pageSize 每页大小
-     * @param {*} currentPage 页码
-     * @returns 返回一个放入了每页大小和页码的数组
-     */
-    static _paging_(queryParams, pageSize, currentPage) {
-        try {
-            if (!isNaN(parseInt(pageSize))) {
-                pageSize = Math.abs(parseInt(pageSize));
-                queryParams.push(pageSize);
-            } else {
-                pageSize = 5;
-                queryParams.push(5); //默认五条
-            }
-    
-            if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
-                //页码减一 * 每页条数 = 开始位置
-                currentPage = Math.abs((parseInt(currentPage) - 1)) * pageSize;
-                queryParams.push(currentPage);
-    
-            } else {
-                queryParams.push(0); //默认第一页
-            }
-    
-            return queryParams;
-        }
-        catch(ex) {
-            console.error('Class Processing => _paging_(): ', ex.message);
-            return [10, 0];
-        }
-    }
-
-    /**
      * @description 获取新闻列表
      * @param {*} req 请求对象
      * @param {*} res 响应对象
@@ -468,7 +445,7 @@ class Processing {
             if (parseInt(categoryId) === NaN) {
                 res.send({
                     statusCode: '300',
-                    message: '请求参数错误'
+                    message: '服务器繁忙，请稍后再试'
                 });
                 return;
             }
@@ -518,43 +495,46 @@ class Processing {
         if (typeof authorization !== 'string') {
             message = {
                 statusCode: '300',
-                message: '请求头错误'
+                message: '服务器繁忙，请稍后再试'
             };
-        } else {
-            let userId = Processing.token.verifyToken(authorization);
+            res.send(message);
+            return;
+        }
 
-            if (userId === false) {
-                res.send({
-                    statusCode: '500',
-                    message: '用户身份过期，请重新登录'
-                });
-                return;
-            }
+        let userId = Processing.token.verifyToken(authorization);
 
-            let queryStr = `select userName, nickName, head_img, gender from userdetails as ud, 
+        if (userId === false) {
+            res.send({
+                statusCode: '500',
+                message: '用户身份过期，请重新登录'
+            });
+            return;
+        }
+
+        let queryStr = `select userName, nickName, head_img, gender from userdetails as ud, 
             useraccount as ua WHERE ud.userId = ua.userId and ud.userId = ?`;
 
-            let data = await Processing.database.query(queryStr, [parseInt(userId)]);
+        let data = await Processing.database.query(queryStr, [parseInt(userId)]);
 
-            if (data[0] !== undefined) {
-                message = {
-                    statusCode: '200',
-                    data: {
-                        userDetail: data[0]
-                    },
-                    message: '获取成功'
-                };
-            } else if (data === false) {
-                message = {
-                    statusCode: '401',
-                    message: '服务器繁忙，请稍后再试'
-                };
-            } else {
-                message = {
-                    statusCode: '404',
-                    message: '服务器繁忙，请稍后再试'
-                };
-            }
+        if (data[0] !== undefined) {
+            message = {
+                statusCode: '200',
+                data: {
+                    userDetail: data[0]
+                },
+                message: '获取成功'
+            };
+        } else if (data.length == 0) {
+
+            message = {
+                statusCode: '404',
+                message: '服务器繁忙，请稍后再试'
+            };
+        } else {
+            message = {
+                statusCode: '401',
+                message: '服务器繁忙，请稍后再试'
+            };
         }
 
         res.send(message);
@@ -579,7 +559,7 @@ class Processing {
         if (typeof authorization !== 'string') {
             res.send({
                 statusCode: '300',
-                message: '请求头错误'
+                message: '服务器繁忙，请稍后再试'
             });
             return;
         }
@@ -608,7 +588,7 @@ class Processing {
 
             if (!regExp.test(nickName)) {
                 res.send({
-                    statusCode: '305',
+                    statusCode: '303',
                     message: '请输入2-7位中文昵称'
                 });
                 return;
@@ -623,7 +603,7 @@ class Processing {
 
             if (!regExp.test(gender)) {
                 res.send({
-                    statusCode: '307',
+                    statusCode: '303',
                     message: '性别错误'
                 });
                 return;
@@ -640,12 +620,12 @@ class Processing {
         } else {
             res.send({
                 statusCode: '300',
-                message: '参数错误'
+                message: '服务器繁忙，请稍后再试'
             });
             return;
         }
 
-        if (data !== false) {
+        if (data === true) {
             message = {
                 statusCode: '200',
                 message: '修改成功'
@@ -678,7 +658,19 @@ class Processing {
             newPwd
         } = req.body;
 
-        if (typeof authorization !== 'string' || typeof oldPwd !== 'string' || typeof newPwd !== 'string') {
+        //请求参数验证
+        let isVerify = Processing._verifyParams_([{
+            param: authorization,
+            type: 'String'
+        }, {
+            param: oldPwd,
+            type: 'String'
+        }, {
+            param: newPwd,
+            type: 'String'
+        }]);
+
+        if (!isVerify) {
             res.send({
                 statusCode: 300,
                 message: '请求参数错误'
@@ -686,6 +678,7 @@ class Processing {
             return;
         }
 
+        //验证token
         let userId = Processing.token.verifyToken(authorization);
 
         if (userId === false) {
@@ -693,6 +686,18 @@ class Processing {
                 statusCode: 500,
                 message: '用户身份过期，请重新登录'
             });
+            return;
+        }
+
+        //验证新密码的格式是否正确
+        isVerify = Processing._regExpVerify_([{
+            value: newPwd,
+            rule: /^[a-zA-Z][\w]{5,15}$/,
+            msg: '请输入6-16位字母、数字、下划线组合且以字母开头的密码'
+        }]);
+
+        if (isVerify !== true) {
+            res.send(isVerify);
             return;
         }
 
@@ -749,10 +754,10 @@ class Processing {
             authorization
         } = req.headers;
 
-        if (!authorization) {
+        if (typeof authorization !== 'string') {
             res.send({
                 statusCode: 300,
-                message: '请求参数错误'
+                message: '服务器错误，请稍后再试'
             });
             return;
         }
@@ -791,7 +796,7 @@ class Processing {
         if (!isNaN(parseInt(pageSize))) {
             queryParams.push(Math.abs(parseInt(pageSize)));
         } else {
-            queryParams.push(6); //默认一页十条
+            queryParams.push(6); //默认一页6条
         }
 
         if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
@@ -857,20 +862,22 @@ class Processing {
 
         let queryParams = [keyword];
 
-        if (!isNaN(parseInt(pageSize))) {
-            queryParams.push(Math.abs(parseInt(pageSize)));
-        } else {
-            queryParams.push(10); //默认一页十条
-        }
+        queryParams = Processing._paging_(queryParams, pageSize, currentPage, 10, 0);
 
-        if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
-            //页码减一 * 每页条数 = 开始位置
-            let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
+        // if (!isNaN(parseInt(pageSize))) {
+        //     queryParams.push(Math.abs(parseInt(pageSize)));
+        // } else {
+        //     queryParams.push(10); //默认一页十条
+        // }
 
-            queryParams.push(beginPosi);
-        } else {
-            queryParams.push(0); //默认第一页
-        }
+        // if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+        //     //页码减一 * 每页条数 = 开始位置
+        //     let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
+
+        //     queryParams.push(beginPosi);
+        // } else {
+        //     queryParams.push(0); //默认第一页
+        // }
 
         let data = await Processing.database.query(queryStr, queryParams);
 
@@ -930,20 +937,22 @@ class Processing {
 
         let queryParams = [keyword];
 
-        if (!isNaN(parseInt(pageSize))) {
-            queryParams.push(Math.abs(parseInt(pageSize)));
-        } else {
-            queryParams.push(10); //默认一页十条
-        }
+        queryParams = Processing._paging_(queryParams, pageSize, currentPage, 10, 0);
 
-        if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
-            //页码减一 * 每页条数 = 开始位置
-            let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
+        // if (!isNaN(parseInt(pageSize))) {
+        //     queryParams.push(Math.abs(parseInt(pageSize)));
+        // } else {
+        //     queryParams.push(10); //默认一页十条
+        // }
 
-            queryParams.push(beginPosi);
-        } else {
-            queryParams.push(0); //默认第一页
-        }
+        // if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+        //     //页码减一 * 每页条数 = 开始位置
+        //     let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
+
+        //     queryParams.push(beginPosi);
+        // } else {
+        //     queryParams.push(0); //默认第一页
+        // }
 
         let data = await Processing.database.query(queryStr, queryParams);
 
@@ -1001,21 +1010,8 @@ class Processing {
             let {
                 authorization
             } = req.headers, isFollow = false, isLike = false;
-
-            if (typeof authorization !== 'string') {
-                res.send({
-                    statusCode: 200,
-                    data: {
-                        newDetails: data[0],
-                        isFollow,
-                        isLike
-                    },
-                    message: '获取新闻详情成功'
-                });
-                return;
-            }
-
             let userId = Processing.token.verifyToken(authorization);
+
             if (userId === false) {
                 res.send({
                     statusCode: 200,
@@ -1028,6 +1024,20 @@ class Processing {
                 });
                 return;
             }
+
+            
+            // if (userId === false) {
+            //     res.send({
+            //         statusCode: 200,
+            //         data: {
+            //             newDetails: data[0],
+            //             isFollow,
+            //             isLike
+            //         },
+            //         message: '获取新闻详情成功'
+            //     });
+            //     return;
+            // }
 
             //查询用户是否关注了该新闻
             queryStr = `SELECT userId from user_follow where userId = ? 
@@ -1095,6 +1105,7 @@ class Processing {
         let {
             followUserId
         } = req.query;
+
         if (isNaN(parseInt(followUserId))) {
             res.send({
                 statusCode: 300,
@@ -1145,8 +1156,8 @@ class Processing {
 
         if (typeof authorization !== 'string') {
             res.send({
-                statusCode: 310,
-                message: '请先登录！'
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
             });
             return;
         }
@@ -1275,8 +1286,8 @@ class Processing {
 
         if (typeof authorization !== 'string') {
             res.send({
-                statusCode: 310,
-                message: '请先登录！'
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
             });
             return;
         }
@@ -1319,6 +1330,8 @@ class Processing {
 
         res.send(message);
     }
+
+
 }
 
 module.exports = Processing;
