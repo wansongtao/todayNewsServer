@@ -11,9 +11,35 @@ class Processing {
     static formidable = require('formidable');
 
     /**
+     * @description 验证参数类型是否正确
+     * @param {Array} params 要验证的参数数组,格式：[{param: value, type: 'String'}]
+     *  数据类型大写，例如：String、Array、Number、Object（仅支持验证这四种类型）
+     * @returns 所有参数验证类型正确后返回true，错误返回false
+     */
+    static _verifyParams_(paramArr = []) {
+        try {
+            let typeArr = ['String', 'Array', 'Object', 'Number'];
+
+            return paramArr.every(val => {
+                //val: {param: value, type: 'String'} 判断类型是否在范围内
+                if (typeArr.indexOf(val.type) === -1) {
+                    console.error('Class Database => _verifyParams_(): type out of range');
+                    return false;
+                }
+
+                //通过构造函数验证类型
+                return val.param.constructor.toString().indexOf(val.type) != -1;
+            });
+        } catch (ex) {
+            console.error('Class Database => _verifyParams_(): ', ex.message);
+            return false;
+        }
+    }
+
+    /**
      * @description 检查账号是否注册了
      * @param {string} userName 用户账号
-     * @returns 返回具体信息 401数据库错误，301没注册，306已注册
+     * @returns 返回具体信息 401数据库错误，301没注册，306已注册    
      *  message = {statusCode: 301,message: '用户不存在'};
      */
     static checkUserName = async (userName) => {
@@ -23,10 +49,10 @@ class Processing {
 
         let data = await Processing.database.query(queryStr, [userName]);
 
-        if (data === false) {
+        if (data[0] && data[0].userId) {
             message = {
-                statusCode: 401,
-                message: '服务器繁忙，请稍后再试'
+                statusCode: 306,
+                message: '用户已存在'
             };
         } else if (data.length === 0) {
             message = {
@@ -35,12 +61,102 @@ class Processing {
             };
         } else {
             message = {
-                statusCode: 306,
-                message: '用户已存在'
+                statusCode: 401,
+                message: '服务器繁忙，请稍后再试'
             };
         }
 
         return message;
+    }
+
+    /**
+     * @description 数据库相关操作
+     * @param {String} queryStr sql语句
+     * @param {object} data 要插入sql语句中的值
+     */
+    static async _databaseProcess_(queryStr, data) {
+        let returnData;
+
+        try {
+            returnData = await Processing.database.query(queryStr, data);
+
+            if (data.length === 0) {
+                message = {
+                    statusCode: 302,
+                    message: '密码错误'
+                };
+            } else if (returnData === false) {
+                message = {
+                    statusCode: 401,
+                    message: '服务器繁忙，请稍后再试'
+                };
+            }
+        } catch (ex) {
+            console.error('Class Processing => _databaseProcess_(): ', ex.message);
+        } finally {
+            return returnData;
+        }
+    }
+
+    /**
+     * @description 创建token
+     * @param {Number} userId 用户id
+     * @returns 创建成功返回 {statusCode: 200, data: {token}, message: '登录成功'}
+     */
+    static _createToken_(userId) {
+        let message = {};
+
+        if (typeof userId !== 'number') {
+            return {
+                statusCode: 402,
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+
+        const token = Processing.token.createToken(userId);
+
+        if (token === false) {
+            message = {
+                statusCode: 402,
+                message: '服务器繁忙，请稍后再试'
+            };
+        } else {
+            message = {
+                statusCode: 200,
+                data: {
+                    token
+                },
+                message: '登录成功'
+            };
+        }
+
+        return message;
+    }
+
+    /**
+     * @description 正则验证
+     * @param {array} paramArr [{value: val, rule: /^[a-zA-Z][a-zA-Z0-9]{2,5}$/, msg: '错误信息'}]
+     * @returns 通过验证返回true，失败返回 {statusCode: 303, message: msg}
+     */
+    static _regExpVerify_(paramArr = []) {
+        try {
+            return paramArr.every(item => {
+                //{value: val, rule: /^[a-zA-Z][a-zA-Z0-9]{2,5}$/, msg: '错误信息'}
+                if (!item.rule.test(item.value)) {
+                    throw {
+                        message: {
+                            statusCode: 303,
+                            message: item.msg
+                        }
+                    };
+                }
+
+                return true;
+            });
+        } catch (ex) {
+            console.error('Class Processing => _regExpVerify_(): ', ex.message);
+            return ex.message;
+        }
     }
 
     /**
@@ -113,59 +229,59 @@ class Processing {
      * @param {*} res 响应对象
      */
     static async login(req, res) {
+        let message = {
+            statusCode: '400',
+            message: '服务器繁忙，请稍后再试'
+        };
+
         let {
             userName,
             userPwd
         } = req.body;
-        let message = {};
 
-        if (typeof userName !== 'string' || typeof userPwd !== 'string') {
+        //验证参数类型
+        let isVerify = Processing._verifyParams_([{
+            param: userName,
+            type: 'String'
+        }, {
+            param: userPwd,
+            type: 'String'
+        }]);
+
+        if (isVerify === false) {
             message = {
                 statusCode: 300,
-                message: '请求参数错误'
+                message: '服务器繁忙，请稍后再试'
             };
-        } else {
-            //查询账号是否注册了
-            message = await Processing.checkUserName(userName);
+            res.send(message);
+            return;
+        }
 
-            if (message.statusCode == 306) {
-                //已注册，验证密码是否正确
-                let queryStr = 'select userId from useraccount where userName = ? and userPwd = ?';
+        //查询账号是否注册了
+        message = await Processing.checkUserName(userName);
 
-                let data = await Processing.database.query(queryStr, [userName, userPwd]);
+        //已注册，验证密码是否正确
+        if (message.statusCode == 306) {
 
-                if (data[0] !== undefined) {
-                    //生成token
-                    const token = Processing.token.createToken(data[0].userId);
+            let queryStr = 'select userId from useraccount where userName = ? and userPwd = ?';
 
-                    if (token === false) {
-                        message = {
-                            statusCode: 402,
-                            message: '服务器繁忙，请稍后再试'
-                        };
-                    } else {
-                        message = {
-                            statusCode: 200,
-                            data: {
-                                token
-                            },
-                            message: '登录成功'
-                        };
-                    }
+            let data = await Processing.database.query(queryStr, [userName, userPwd]);
 
-                } else if (data.length === 0) {
-                    message = {
-                        statusCode: 302,
-                        message: '密码错误'
-                    };
-                } else {
-                    message = {
-                        statusCode: 401,
-                        message: '服务器繁忙，请稍后再试'
-                    };
-                }
+            if (data[0] !== undefined && data[0].userId) {
+                //生成token
+                message = Processing._createToken_(data[0].userId);
+
+            } else if (data.length === 0) {
+                message = {
+                    statusCode: 302,
+                    message: '密码错误'
+                };
+            } else {
+                message = {
+                    statusCode: 401,
+                    message: '服务器繁忙，请稍后再试'
+                };
             }
-
         }
 
         res.send(message);
@@ -188,65 +304,70 @@ class Processing {
             nickName
         } = req.body;
 
-        if (typeof userName !== 'string' || typeof userPwd !== 'string' || typeof nickName !== 'string') {
+        //验证参数类型
+        let isVerify = Processing._verifyParams_([{
+            param: userName,
+            type: 'String'
+        }, {
+            param: userPwd,
+            type: 'String'
+        }, {
+            param: nickName,
+            type: 'String'
+        }]);
+
+        if (isVerify === false) {
             message = {
                 statusCode: 300,
-                message: '请求参数错误'
+                message: '服务器错误，请稍后再试'
+            };
+            res.send(message);
+            return;
+        }
+
+        //验证参数格式
+        isVerify = Processing._regExpVerify_([{
+            value: userName,
+            rule: /^[a-zA-Z][a-zA-Z0-9]{2,5}$/,
+            msg: '请输入3-6位字母/数字组合且以字母开头的用户名'
+        }, {
+            value: userPwd,
+            rule: /^[a-zA-Z][\w]{5,15}$/,
+            msg: '请输入6-16位字母、数字、下划线组合且以字母开头的密码'
+        }, {
+            value: nickName,
+            rule: /^[\u4e00-\u9fa5]{2,7}$/,
+            msg: '请输入2-7位中文昵称'
+        }]);
+
+        if (isVerify !== true) {
+            res.send(isVerify);
+            return;
+        }
+
+        //判断用户账号是否已注册
+        message = await Processing.checkUserName(userName);
+
+        if (message.statusCode != 301) {
+            res.send(message);
+            return;
+        }
+
+        let isSuccess = await Processing.database.register('insert into useraccount set ?', {
+            userName,
+            userPwd
+        }, nickName);
+
+        if (isSuccess) {
+            message = {
+                statusCode: 200,
+                message: '注册成功'
             };
         } else {
-            //验证参数格式
-            let regExp = /^[a-zA-Z][a-zA-Z0-9]{2,5}$/;
-
-            if (!regExp.test(userName)) {
-                res.send({
-                    statusCode: 303,
-                    message: '请输入3-6位字母/数字组合且以字母开头的用户名'
-                });
-                return;
-            }
-
-            regExp = /^[a-zA-Z][\w]{5,15}$/;
-            if (!regExp.test(userPwd)) {
-                res.send({
-                    statusCode: 304,
-                    message: '请输入6-16位字母、数字、下划线组合且以字母开头的密码'
-                });
-                return;
-            }
-
-            regExp = /^[\u4e00-\u9fa5]{2,7}$/;
-            if (!regExp.test(nickName)) {
-                res.send({
-                    statusCode: 305,
-                    message: '请输入2-7位中文昵称'
-                });
-                return;
-            }
-
-            //判断用户账号是否已注册
-            message = await Processing.checkUserName(userName);
-
-            if (message.statusCode != 301) {
-                res.send(message);
-                return;
-            }
-
-            let isSuccess = await Processing.database.register('insert into useraccount set ?', {
-                userName,
-                userPwd
-            }, nickName);
-
-            if (isSuccess) {
-                message = {
-                    statusCode: 200,
-                    message: '注册成功'
-                };
-            } else {
-                message = {
-                    statusCode: 403,
-                    message: '注册失败'
-                };
-            }
+            message = {
+                statusCode: 403,
+                message: '注册失败'
+            };
         }
 
         res.send(message);
@@ -286,6 +407,40 @@ class Processing {
     }
 
     /**
+     * @description 分页相关操作
+     * @param {array} queryParams 要放入sql语句中的参数数组
+     * @param {*} pageSize 每页大小
+     * @param {*} currentPage 页码
+     * @returns 返回一个放入了每页大小和页码的数组
+     */
+    static _paging_(queryParams, pageSize, currentPage) {
+        try {
+            if (!isNaN(parseInt(pageSize))) {
+                pageSize = Math.abs(parseInt(pageSize));
+                queryParams.push(pageSize);
+            } else {
+                pageSize = 5;
+                queryParams.push(5); //默认五条
+            }
+    
+            if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
+                //页码减一 * 每页条数 = 开始位置
+                currentPage = Math.abs((parseInt(currentPage) - 1)) * pageSize;
+                queryParams.push(currentPage);
+    
+            } else {
+                queryParams.push(0); //默认第一页
+            }
+    
+            return queryParams;
+        }
+        catch(ex) {
+            console.error('Class Processing => _paging_(): ', ex.message);
+            return [10, 0];
+        }
+    }
+
+    /**
      * @description 获取新闻列表
      * @param {*} req 请求对象
      * @param {*} res 响应对象
@@ -306,10 +461,10 @@ class Processing {
             queryParams = [];
 
         if (categoryId === undefined) {
-            //获取所有新闻列表
+            //获取所有新闻列表的sql语句
             queryStr = 'SELECT newsId, nickName, newsTitle, newsCover, commentNums from newlists limit ? offset ?';
         } else {
-            //获取对应栏目的新闻列表
+            //获取对应栏目的新闻列表的sql语句
             if (parseInt(categoryId) === NaN) {
                 res.send({
                     statusCode: '300',
@@ -323,26 +478,11 @@ class Processing {
             queryParams.push(parseInt(categoryId));
         }
 
-        if (!isNaN(parseInt(pageSize))) {
-            pageSize = Math.abs(parseInt(pageSize));
-            queryParams.push(pageSize);
-        } else {
-            pageSize = 5;
-            queryParams.push(5); //默认五条
-        }
-
-        if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
-            //页码减一 * 每页条数 = 开始位置
-            currentPage = Math.abs((parseInt(currentPage) - 1)) * pageSize;
-            queryParams.push(currentPage);
-
-        } else {
-            queryParams.push(0); //默认第一页
-        }
+        queryParams = Processing._paging_(queryParams, pageSize, currentPage);
 
         let data = await Processing.database.query(queryStr, queryParams);
 
-        if (data !== false) {
+        if (data.length >= 0) {
             message = {
                 statusCode: '200',
                 data: {
@@ -1081,7 +1221,9 @@ class Processing {
             return;
         }
 
-        let {newsId} = req.query;
+        let {
+            newsId
+        } = req.query;
 
         if (isNaN(parseInt(newsId))) {
             res.send({
@@ -1095,15 +1237,18 @@ class Processing {
         let likeDate = new Date();
         likeDate = likeDate.toISOString().substr(0, 10);
 
-        let data = await Processing.database.insert(queryStr, {userId, newsId, likeDate});
+        let data = await Processing.database.insert(queryStr, {
+            userId,
+            newsId,
+            likeDate
+        });
 
         if (data) {
             message = {
                 statusCode: 200,
                 message: '点赞成功'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: 401,
                 message: '点赞失败'
@@ -1145,7 +1290,9 @@ class Processing {
             return;
         }
 
-        let {newsId} = req.query;
+        let {
+            newsId
+        } = req.query;
 
         if (isNaN(parseInt(newsId))) {
             res.send({
@@ -1163,8 +1310,7 @@ class Processing {
                 statusCode: 200,
                 message: '取消点赞成功'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: 401,
                 message: '取消失败'
