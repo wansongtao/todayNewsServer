@@ -1415,7 +1415,10 @@ class Processing {
         data.forEach((item, index) => {
             childData.forEach(value => {
                 if (value.parentId == item.commentId) {
-                    data[index].childComment.push(value);
+                    //主评论下最多添加三条子评论
+                    if(data[index].childComment.length < 3) {
+                        data[index].childComment.push(value);
+                    }     
                 }
             });
         });
