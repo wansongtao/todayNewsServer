@@ -1003,7 +1003,7 @@ class Processing {
             return;
         }
 
-        let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsHot, newsDate from newlists WHERE newsId = ?';
+        let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsHot, newsDate, commentNums from newlists WHERE newsId = ?';
 
         let data = await Processing.database.query(queryStr, [parseInt(newsId)]);
 
