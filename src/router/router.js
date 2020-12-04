@@ -63,6 +63,9 @@ class Router {
 
         //新闻取消点赞功能
         this.myRouter.get('/unlike', processing.unLike);
+
+        //新闻评论接口
+        this.myRouter.get('/newscomment', processing.getNewsComment);
     }
 
     /**

@@ -1,5 +1,6 @@
 const {
-    update
+    update,
+    query
 } = require('../database/database');
 
 /**
@@ -1025,7 +1026,7 @@ class Processing {
                 return;
             }
 
-            
+
             // if (userId === false) {
             //     res.send({
             //         statusCode: 200,
@@ -1331,7 +1332,104 @@ class Processing {
         res.send(message);
     }
 
+    /**
+     * @description 新闻评论列表
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async getNewsComment(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
 
+        let {
+            newsId
+        } = req.query;
+
+        if (isNaN(parseInt(newsId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        //获取所有主评论
+        let queryStr = `SELECT * from commentlists where commentId IN 
+        (SELECT parentCommentId as commentId FROM news_comment WHERE newsId = ?)`;
+
+        let data = await Processing.database.query(queryStr, [newsId]);
+
+        if (data === false) {
+            message = {
+                statusCode: 401,
+                message: '服务器繁忙，请稍后再试'
+            };
+            res.send(message);
+            return;
+        } else if (data.length === 0) {
+            message = {
+                statusCode: 201,
+                message: '暂无评论'
+            };
+            res.send(message);
+            return;
+        }
+
+        //添加子评论字段
+        data = data.map(item => {
+            return {
+                ...item,
+                childComment: []
+            }
+        });
+
+        //获取这篇新闻下的所有子评论
+        queryStr = 'SELECT * from childcommentlist WHERE newsId = ?'
+        let childData = await Processing.database.query(queryStr, [newsId]);
+
+        if (childData === false) {
+            message = {
+                statusCode: 200,
+                data: {
+                    commentList: data
+                },
+                message: '获取子评论错误'
+            };
+            res.send(message);
+            return;
+        } else if (childData.length === 0) {
+            message = {
+                statusCode: 200,
+                data: {
+                    commentList: data
+                },
+                message: '无子评论'
+            };
+            res.send(message);
+            return;
+        }
+
+        //将子评论添加入对应的主评论下
+        data.forEach((item, index) => {
+            childData.forEach(value => {
+                if (value.parentId == item.commentId) {
+                    data[index].childComment.push(value);
+                }
+            });
+        });
+
+        message = {
+            statusCode: 200,
+            data: {
+                commentList: data
+            },
+            message: '获取评论列表成功'
+        };
+
+        res.send(message);
+    }
 }
 
 module.exports = Processing;
