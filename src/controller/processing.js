@@ -1356,7 +1356,8 @@ class Processing {
         }
 
         //获取所有主评论
-        let queryStr = `SELECT * from commentlists where commentId IN 
+        let queryStr = `SELECT commentId as parentCommentId, nickName, head_img, commentContent, commentDate 
+         from commentlists where parentCommentId IN 
         (SELECT parentCommentId as commentId FROM news_comment WHERE newsId = ?)`;
 
         let data = await Processing.database.query(queryStr, [newsId]);
@@ -1386,7 +1387,8 @@ class Processing {
         });
 
         //获取这篇新闻下的所有子评论
-        queryStr = 'SELECT * from childcommentlist WHERE newsId = ?'
+        queryStr = `SELECT commentId as childCommentId, nickName, commentContent, parentId, replyUserName
+         from childcommentlist WHERE newsId = ?`;
         let childData = await Processing.database.query(queryStr, [newsId]);
 
         if (childData === false) {
