@@ -1357,7 +1357,7 @@ class Processing {
 
         //获取所有主评论
         let queryStr = `SELECT commentId as parentCommentId, nickName, head_img, commentContent, commentDate 
-         from commentlists where parentCommentId IN 
+         from commentlists where commentId IN 
         (SELECT parentCommentId as commentId FROM news_comment WHERE newsId = ?)`;
 
         let data = await Processing.database.query(queryStr, [newsId]);
@@ -1386,10 +1386,13 @@ class Processing {
             }
         });
 
-        //获取这篇新闻下的所有子评论
-        queryStr = `SELECT commentId as childCommentId, nickName, commentContent, parentId, replyUserName
-         from childcommentlist WHERE newsId = ?`;
-        let childData = await Processing.database.query(queryStr, [newsId]);
+        //获取这篇新闻下的所有主评论下的三条子评论
+        queryStr = `SELECT commentId as childCommentId, nickName, commentContent, parentId, replyUserName 
+        from childcommentlist as c WHERE newsId = ? and commentId IN (SELECT commentId from 
+        (SELECT commentId FROM childcommentlist as x WHERE x.newsId = c.newsId and x.parentId = c.parentId LIMIT ?)
+         as y)`;
+
+        let childData = await Processing.database.query(queryStr, [newsId, 3]);
 
         if (childData === false) {
             message = {
@@ -1416,11 +1419,12 @@ class Processing {
         //将子评论添加入对应的主评论下
         data.forEach((item, index) => {
             childData.forEach(value => {
-                if (value.parentId == item.commentId) {
-                    //主评论下最多添加三条子评论
-                    if(data[index].childComment.length < 3) {
-                        data[index].childComment.push(value);
-                    }     
+                if (value.parentId == item.parentCommentId) {
+                    // //主评论下最多添加三条子评论
+                    // if (data[index].childComment.length < 3) {
+                    //     data[index].childComment.push(value);
+                    // }
+                    data[index].childComment.push(value);
                 }
             });
         });
@@ -1432,6 +1436,68 @@ class Processing {
             },
             message: '获取评论列表成功'
         };
+
+        res.send(message);
+    }
+
+    /**
+     * @description 获取更多子评论
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async getMoreChildComment(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            newsId,
+            parentId
+        } = req.query;
+
+        let isVerify = Processing._verifyParams_([{
+            param: parseInt(newsId),
+            type: 'Number'
+        }, {
+            param: parseInt(parentId),
+            type: 'Number'
+        }]);
+
+        if (!isVerify) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        //查询这条主评论下的除前三条子评论外的所有子评论
+        let queryStr = `SELECT commentId as childCommentId, nickName, commentContent, parentId, replyUserName from 
+        childcommentlist as c WHERE newsId = ? and parentId = ? AND commentId not IN (SELECT commentId from 
+        (SELECT commentId FROM childcommentlist as x WHERE x.newsId = c.newsId and x.parentId = c.parentId LIMIT ?) as y)`;
+
+        let data = await Processing.database.query(queryStr, [newsId, parentId, 3]);
+
+        if (data[0]) {
+            message = {
+                statusCode: 200,
+                data: {childComment: data},
+                message: '获取更多子评论成功'
+            };
+        }
+        else if (data[0].length === 0) {
+            message = {
+                statusCode: 201,
+                message: '没有更多评论了'
+            };
+        }
+        else {
+            message = {
+                statusCode: 401,
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
 
         res.send(message);
     }

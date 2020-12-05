@@ -66,6 +66,9 @@ class Router {
 
         //新闻评论接口
         this.myRouter.get('/newscomment', processing.getNewsComment);
+
+        //新闻子评论接口
+        this.myRouter.get('/childcomment', processing.getMoreChildComment);
     }
 
     /**
