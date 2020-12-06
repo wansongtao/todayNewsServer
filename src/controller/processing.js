@@ -1003,14 +1003,15 @@ class Processing {
             return;
         }
 
-        let queryStr = 'SELECT newsId, userId, nickName, newsTitle, newsContent, newsHot, newsDate, commentNums from newlists WHERE newsId = ?';
+        let queryStr = `SELECT newsId, userId, nickName, newsTitle, newsContent, newsHot, newsDate, 
+        commentNums from newlists WHERE newsId = ?`;
 
         let data = await Processing.database.query(queryStr, [parseInt(newsId)]);
 
         if (data[0]) {
             let {
                 authorization
-            } = req.headers, isFollow = false, isLike = false;
+            } = req.headers, isFollow = false, isLike = false, isCollect = false;
             let userId = Processing.token.verifyToken(authorization);
 
             if (userId === false) {
@@ -1019,26 +1020,13 @@ class Processing {
                     data: {
                         newDetails: data[0],
                         isFollow,
-                        isLike
+                        isLike,
+                        isCollect
                     },
                     message: '获取新闻详情成功'
                 });
                 return;
             }
-
-
-            // if (userId === false) {
-            //     res.send({
-            //         statusCode: 200,
-            //         data: {
-            //             newDetails: data[0],
-            //             isFollow,
-            //             isLike
-            //         },
-            //         message: '获取新闻详情成功'
-            //     });
-            //     return;
-            // }
 
             //查询用户是否关注了该新闻
             queryStr = `SELECT userId from user_follow where userId = ? 
@@ -1052,12 +1040,18 @@ class Processing {
             let likeData = await Processing.database.query(queryStr, [userId, newsId]);
             likeData[0] ? isLike = true : isLike = false;
 
+            //查询用户是否收藏了该新闻
+            queryStr = 'SELECT userId from user_collect_news where userId = ? and newsId = ?';
+            let collect = await Processing.database.query(queryStr, [userId, newsId]);
+            collect[0] ? isCollect = true : isCollect = false;
+
             message = {
                 statusCode: 200,
                 data: {
                     newDetails: data[0],
                     isFollow,
-                    isLike
+                    isLike,
+                    isCollect
                 },
                 message: '获取新闻详情成功'
             };
@@ -1069,6 +1063,66 @@ class Processing {
         }
 
         res.send(message);
+    }
+
+    /**
+     * @description 根据用户id，向数据表中插入数据
+     * @param {string} authorization token，可以解析除用户id
+     * @param {string} queryStr sql语句
+     * @param {object} data 要插入sql语句中的值
+     * @returns message = {statusCode: 400,message: msg}
+     */
+    static async insertData(authorization, queryStr, data = {}) {
+        try {
+            let message = {
+                statusCode: 400,
+                message: '服务器繁忙，请稍后再试'
+            };
+
+            if (typeof authorization !== 'string') {
+                message = {
+                    statusCode: 310,
+                    message: '请先登录'
+                };
+
+                return message;
+            }
+
+            let userId = Processing.token.verifyToken(authorization);
+
+            if (userId === false) {
+                return {
+                    statusCode: 500,
+                    message: '用户身份过期，请重新登录'
+                };
+            }
+
+            data.userId = userId;
+
+            let isSuccess = await Processing.database.insert(queryStr, data);
+
+            if (isSuccess) {
+                message = {
+                    statusCode: 200,
+                    message: '操作成功'
+                };
+            } else {
+                message = {
+                    statusCode: 401,
+                    message: '操作失败'
+                };
+            }
+
+            return message;
+
+        } catch (ex) {
+            console.error(ex.message);
+            return {
+                statusCode: 400,
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+
     }
 
     /**
@@ -1086,23 +1140,6 @@ class Processing {
             authorization
         } = req.headers;
 
-        if (typeof authorization !== 'string') {
-            res.send({
-                statusCode: 310,
-                message: '请先登录！'
-            });
-            return;
-        }
-
-        let userId = Processing.token.verifyToken(authorization);
-        if (userId === false) {
-            res.send({
-                statusCode: 500,
-                message: '用户身份过期，请重新登录！'
-            });
-            return;
-        }
-
         let {
             followUserId
         } = req.query;
@@ -1119,23 +1156,12 @@ class Processing {
         followDate = followDate.toISOString().substr(0, 10);
 
         let queryStr = 'INSERT INTO user_follow set ?';
-        let data = await Processing.database.insert(queryStr, {
-            userId,
+        let data = {
             followUserId,
             followDate
-        });
+        };
 
-        if (data) {
-            message = {
-                statusCode: 200,
-                message: '关注成功'
-            };
-        } else {
-            message = {
-                statusCode: 401,
-                message: '关注失败'
-            };
-        }
+        message = await Processing.insertData(authorization, queryStr, data);
 
         res.send(message);
     }
@@ -1216,23 +1242,6 @@ class Processing {
             authorization
         } = req.headers;
 
-        if (typeof authorization !== 'string') {
-            res.send({
-                statusCode: 310,
-                message: '请先登录！'
-            });
-            return;
-        }
-
-        let userId = Processing.token.verifyToken(authorization);
-        if (userId === false) {
-            res.send({
-                statusCode: 500,
-                message: '用户身份过期，请重新登录！'
-            });
-            return;
-        }
-
         let {
             newsId
         } = req.query;
@@ -1249,23 +1258,12 @@ class Processing {
         let likeDate = new Date();
         likeDate = likeDate.toISOString().substr(0, 10);
 
-        let data = await Processing.database.insert(queryStr, {
-            userId,
+        let data = {
             newsId,
             likeDate
-        });
+        };
 
-        if (data) {
-            message = {
-                statusCode: 200,
-                message: '点赞成功'
-            };
-        } else {
-            message = {
-                statusCode: 401,
-                message: '点赞失败'
-            };
-        }
+        message = await Processing.insertData(authorization, queryStr, data);
 
         res.send(message);
     }
@@ -1560,7 +1558,7 @@ class Processing {
 
         let commentDate = new Date();
         commentDate = commentDate.toISOString().replace(/T|Z/g, ' ');
-        
+
         let isSuccess = await Processing.database.review({
             userId,
             newsId,
@@ -1575,11 +1573,113 @@ class Processing {
                 statusCode: 200,
                 message: '发表成功'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: 401,
                 message: '发表失败'
+            };
+        }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 收藏文章
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async collectNews(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        let {
+            newsId
+        } = req.query;
+
+        if (isNaN(parseInt(newsId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let queryStr = 'insert into user_collect_news set ?';
+        let collectDate = new Date();
+        collectDate = collectDate.toISOString().substr(0, 10);
+
+        let data = {
+            newsId,
+            collectDate
+        };
+
+        message = await Processing.insertData(authorization, queryStr, data);
+
+        res.send(message);
+    }
+
+    /**
+     * @description 取消收藏文章
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async unCollectNews(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        if (typeof authorization !== 'string') {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let userId = Processing.token.verifyToken(authorization);
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let {
+            newsId
+        } = req.query;
+
+        if (isNaN(parseInt(newsId))) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let queryStr = 'delete from user_collect_news where userId = ? and newsId = ?';
+        let isSuccess = await Processing.database.delete(queryStr, [userId, newsId]);
+
+        if (isSuccess) {
+            message = {
+                statusCode: 200,
+                message: '取消收藏成功'
+            };
+        } else {
+            message = {
+                statusCode: 401,
+                message: '取消收藏失败'
             };
         }
 

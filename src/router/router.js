@@ -72,6 +72,12 @@ class Router {
 
         //发布评论接口
         this.myRouter.post('/review', processing.review);
+
+        //收藏文章/新闻接口
+        this.myRouter.get('/collectnews', processing.collectNews);
+
+        //取消收藏文章/新闻接口
+        this.myRouter.get('/uncollectnews', processing.unCollectNews);
     }
 
     /**
