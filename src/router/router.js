@@ -69,6 +69,9 @@ class Router {
 
         //新闻子评论接口
         this.myRouter.get('/childcomment', processing.getMoreChildComment);
+
+        //发布评论接口
+        this.myRouter.post('/review', processing.review);
     }
 
     /**

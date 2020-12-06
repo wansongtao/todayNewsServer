@@ -1482,20 +1482,104 @@ class Processing {
         if (data[0]) {
             message = {
                 statusCode: 200,
-                data: {childComment: data},
+                data: {
+                    childComment: data
+                },
                 message: '获取更多子评论成功'
             };
-        }
-        else if (data[0].length === 0) {
+        } else if (data[0].length === 0) {
             message = {
                 statusCode: 201,
                 message: '没有更多评论了'
+            };
+        } else {
+            message = {
+                statusCode: 401,
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 发表评论
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async review(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        if (typeof authorization !== 'string') {
+            res.send({
+                statusCode: 310,
+                message: '请先登录'
+            });
+            return;
+        }
+
+        let userId = Processing.token.verifyToken(authorization);
+
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录'
+            });
+            return;
+        }
+
+        let {
+            newsId,
+            commentContent,
+            parentId,
+            replyCommentId
+        } = req.body;
+
+        let isVerify = Processing._verifyParams_([{
+            param: parseInt(newsId),
+            type: 'Number'
+        }, {
+            param: commentContent,
+            type: 'String'
+        }]);
+
+        if (!isVerify) {
+            res.send({
+                statusCode: 300,
+                message: '服务器繁忙，请稍后再试'
+            });
+            return;
+        }
+
+        let commentDate = new Date();
+        commentDate = commentDate.toISOString().replace(/T|Z/g, ' ');
+        
+        let isSuccess = await Processing.database.review({
+            userId,
+            newsId,
+            commentContent,
+            commentDate,
+            parentId,
+            replyCommentId
+        });
+
+        if (isSuccess) {
+            message = {
+                statusCode: 200,
+                message: '发表成功'
             };
         }
         else {
             message = {
                 statusCode: 401,
-                message: '服务器繁忙，请稍后再试'
+                message: '发表失败'
             };
         }
 

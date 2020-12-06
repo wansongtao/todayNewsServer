@@ -394,6 +394,99 @@ class Database {
             });
     }
 
+    /**
+     * @description 发表评论，使用事务向数据库的多个表插入数据
+     * @param {object} data {commentContent, commentDate, userId, newsId, parentId, replyCommentId}
+     * @returns 成功返回true，失败返回false
+     */
+    static async review(data) {
+        let {
+            commentContent,
+            commentDate,
+            userId,
+            newsId,
+            parentId,
+            replyCommentId
+        } = data;
+
+        //从连接池里获取数据库连接
+        let connection = await this._getPool_().catch(() => {
+            return false;
+        });
+
+        if (connection === false) {
+            console.error('Class Database => review( _getPool_() )');
+            return false;
+        }
+
+        //开始事务
+        connection = await this._transaction_(connection).catch(() => {
+            return false;
+        });
+
+        if (connection === false) {
+            console.error('Class Database => review( _transaction_() )');
+            return false;
+        }
+
+        //向评论详情表里插入评论内容和评论时间
+        let queryStr = 'INSERT INTO commentdetails (commentContent, commentDate) values(?, ?)';
+
+        let result = await this._transactionChangeData_(connection, queryStr, [commentContent, commentDate])
+            .catch(() => {
+                return false;
+            });
+
+        if (result === false) {
+            console.error('Class Database => review( _transactionChangeData_(1) )');
+            return false;
+        }
+
+        /**
+         * @description 向评论详情表插入数据成功后，获取插入的评论id
+         */
+        let commentId = result.insertId;
+
+        //向用户评论表插入对应数据
+        queryStr = 'INSERT INTO user_comment VALUES(?, ?)';
+        result = await this._transactionChangeData_(connection, queryStr, [commentId, userId])
+            .catch(() => {
+                return false;
+            });
+
+        if (result === false) {
+            console.error('Class Database => review( _transactionChangeData_(2) )');
+            return false;
+        }
+
+        if (parentId == undefined) {
+            //发布主评论，向新闻主评论表插入数据
+            queryStr = 'INSERT INTO news_comment VALUES(?, ?)';
+            result = await this._transactionChangeData_(connection, queryStr, [newsId, commentId])
+                .catch(() => {
+                    return false;
+                });
+        } else {
+            //发布子评论，向新闻子评论表插入数据
+            queryStr = 'INSERT into news_childcomment VALUES(?, ?, ?, ?)';
+            result = await this._transactionChangeData_(connection, queryStr, [parentId, commentId, replyCommentId, newsId])
+                .catch(() => {
+                    return false;
+                });
+        }
+
+        if (result === false) {
+            console.error('Class Database => review( _transactionChangeData_(3) )');
+            return false;
+        }
+
+        //提交事务
+        result = await this._commit_(connection).catch(() => {
+            return false;
+        });
+        return result;
+    }
+
 }
 
 module.exports = Database;
