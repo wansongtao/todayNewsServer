@@ -78,6 +78,9 @@ class Router {
 
         //取消收藏文章/新闻接口
         this.myRouter.get('/uncollectnews', processing.unCollectNews);
+
+        //收藏文章/新闻接口
+        this.myRouter.get('/userstar', processing.collectList);
     }
 
     /**

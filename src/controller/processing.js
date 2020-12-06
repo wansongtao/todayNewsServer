@@ -1685,6 +1685,66 @@ class Processing {
 
         res.send(message);
     }
+
+    /**
+     * @description 收藏文章列表
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async collectList(req, res) {
+        let message = {
+            statusCode: '400',
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        let userId = Processing.token.verifyToken(authorization);
+
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let {currentPage, pageSize} = req.query;
+        let queryParams = [userId];
+
+        queryParams = Processing._paging_(queryParams, pageSize, currentPage, 10, 0);
+
+        let queryStr = `SELECT newsId, nickName, newsTitle, newsCover, commentNums from newlists where 
+        newsId in (select newsId from user_collect_news where userId = ?) limit ? offset ?`;
+
+        let data = await Processing.database.query(queryStr, queryParams);
+
+        if (data[0]) {
+            message = {
+                statusCode: '200',
+                data: {
+                    newList: data
+                },
+                message: '获取收藏新闻/文章成功'
+            };
+        }
+        else if (data.length == 0) {
+            message = {
+                statusCode: '201',
+                message: '您没有收藏任何新闻'
+            };
+        }
+        else {
+            message = {
+                statusCode: '401',
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+
+        res.send(message);
+    }
 }
 
 module.exports = Processing;
