@@ -1360,17 +1360,17 @@ class Processing {
 
         let data = await Processing.database.query(queryStr, [newsId]);
 
-        if (data === false) {
-            message = {
-                statusCode: 401,
-                message: '服务器繁忙，请稍后再试'
-            };
-            res.send(message);
-            return;
-        } else if (data.length === 0) {
+        if (data.length === 0) {
             message = {
                 statusCode: 201,
                 message: '暂无评论'
+            };
+            res.send(message);
+            return;
+        } else if (data === false) {
+            message = {
+                statusCode: 401,
+                message: '服务器繁忙，请稍后再试'
             };
             res.send(message);
             return;
@@ -1392,23 +1392,24 @@ class Processing {
 
         let childData = await Processing.database.query(queryStr, [newsId, 3]);
 
-        if (childData === false) {
-            message = {
-                statusCode: 200,
-                data: {
-                    commentList: data
-                },
-                message: '获取子评论错误'
-            };
-            res.send(message);
-            return;
-        } else if (childData.length === 0) {
+        if (childData.length === 0) {
             message = {
                 statusCode: 200,
                 data: {
                     commentList: data
                 },
                 message: '无子评论'
+            };
+            res.send(message);
+            return;
+
+        } else if (childData === false) {
+            message = {
+                statusCode: 200,
+                data: {
+                    commentList: data
+                },
+                message: '获取子评论错误'
             };
             res.send(message);
             return;
@@ -1711,7 +1712,10 @@ class Processing {
             return;
         }
 
-        let {currentPage, pageSize} = req.query;
+        let {
+            currentPage,
+            pageSize
+        } = req.query;
         let queryParams = [userId];
 
         queryParams = Processing._paging_(queryParams, pageSize, currentPage, 10, 0);
@@ -1729,14 +1733,12 @@ class Processing {
                 },
                 message: '获取收藏新闻/文章成功'
             };
-        }
-        else if (data.length == 0) {
+        } else if (data.length == 0) {
             message = {
                 statusCode: '201',
                 message: '您没有收藏任何新闻'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: '401',
                 message: '服务器繁忙，请稍后再试'
@@ -1780,22 +1782,106 @@ class Processing {
         if (data[0]) {
             message = {
                 statusCode: '200',
-                data: {followUserList: data},
+                data: {
+                    followUserList: data
+                },
                 message: '获取成功'
             };
-        }
-        else if (data.length === 0) {
+        } else if (data.length === 0) {
             message = {
                 statusCode: '201',
                 message: '您没有关注任何用户'
             };
-        }
-        else {
+        } else {
             message = {
                 statusCode: '401',
                 message: '服务器繁忙，请稍后再试'
             };
         }
+
+        res.send(message);
+    }
+
+    /**
+     * @description 用户评论列表
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async userCommentList(req, res) {
+        let message = {
+            statusCode: 400,
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        let userId = Processing.token.verifyToken(authorization);
+
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        //获取所有主评论
+        let queryStr = `SELECT newsId, commentId as parentCommentId, nickName, head_img, commentContent, commentDate 
+         from commentlists where commentId IN 
+        (SELECT parentCommentId as commentId FROM news_comment WHERE userId = ?)`;
+
+        let data = await Processing.database.query(queryStr, [userId]);
+
+        if (data.length === 0) {
+            message = {
+                statusCode: 201,
+                message: '您没有评论任何文章'
+            };
+            res.send(message);
+            return;
+        } else if (data === false) {
+            message = {
+                statusCode: 401,
+                message: '服务器繁忙，请稍后再试'
+            };
+            res.send(message);
+            return;
+        }
+
+        //添加子评论字段
+        data = data.map(item => {
+            return {
+                ...item,
+                childComment: []
+            }
+        });
+
+        //获取这篇新闻下的所有主评论下的三条子评论
+        queryStr = `SELECT commentId as childCommentId, nickName, commentContent, parentId, replyUserName 
+        from childcommentlist WHERE userId = ?`;
+
+        let childData = await Processing.database.query(queryStr, [userId]);
+
+        if (childData.length > 0) {
+            //将子评论添加入对应的主评论下
+            data.forEach((item, index) => {
+                childData.forEach(value => {
+                    if (value.parentId == item.parentCommentId) {
+                        data[index].childComment.push(value);
+                    }
+                });
+            });
+        }
+
+        message = {
+            statusCode: 200,
+            data: {
+                commentList: data
+            },
+            message: '获取评论列表成功'
+        };
 
         res.send(message);
     }

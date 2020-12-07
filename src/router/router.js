@@ -84,6 +84,9 @@ class Router {
 
         //用户关注列表接口
         this.myRouter.get('/followuserlist', processing.followUserList);
+
+        //用户评论列表接口
+        this.myRouter.get('/user_comments', processing.userCommentList);
     }
 
     /**
