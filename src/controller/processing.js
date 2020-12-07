@@ -625,13 +625,6 @@ class Processing {
 
             data = await Processing.database.update(queryStr, [gender.toString(), userId]);
         } else if (typeof head_img === 'string') {
-            // let queryStr = 'select updateDate from userdetails where userId = ?';
-
-            // let agoUpdateDate = await Processing.database.query(queryStr, [userId]);
-
-            // if (agoUpdateDate[0]) {
-            //     console.log(agoUpdateDate[0]);
-            // }
             let updateDate = new Date();
             updateDate = updateDate.toISOString().replace(/T|Z/g, ' ');
 
