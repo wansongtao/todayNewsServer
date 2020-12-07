@@ -1745,6 +1745,60 @@ class Processing {
 
         res.send(message);
     }
+
+    /**
+     * @description 关注用户列表
+     * @param {*} req 请求对象
+     * @param {*} res 响应对象
+     */
+    static async followUserList(req, res) {
+        let message = {
+            statusCode: '400',
+            message: '服务器繁忙，请稍后再试'
+        };
+
+        let {
+            authorization
+        } = req.headers;
+
+        let userId = Processing.token.verifyToken(authorization);
+
+        if (userId === false) {
+            res.send({
+                statusCode: 500,
+                message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+
+        let queryStr = `SELECT ud.userId, ud.nickName, ud.head_img, uf.followDate from userdetails as ud 
+        right JOIN (SELECT followUserId, followDate from user_follow where userId = ?) AS uf 
+         ON ud.userId = uf.followUserId`;
+
+        let data = await Processing.database.query(queryStr, [userId]);
+
+        if (data[0]) {
+            message = {
+                statusCode: '200',
+                data: {followUserList: data},
+                message: '获取成功'
+            };
+        }
+        else if (data.length === 0) {
+            message = {
+                statusCode: '201',
+                message: '您没有关注任何用户'
+            };
+        }
+        else {
+            message = {
+                statusCode: '401',
+                message: '服务器繁忙，请稍后再试'
+            };
+        }
+
+        res.send(message);
+    }
 }
 
 module.exports = Processing;

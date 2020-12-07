@@ -81,6 +81,9 @@ class Router {
 
         //收藏文章/新闻接口
         this.myRouter.get('/userstar', processing.collectList);
+
+        //用户关注列表接口
+        this.myRouter.get('/followuserlist', processing.followUserList);
     }
 
     /**
