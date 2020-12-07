@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 80022
 File Encoding         : 65001
 
-Date: 2020-12-06 17:16:41
+Date: 2020-12-07 17:51:03
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -50,7 +50,7 @@ CREATE TABLE `commentdetails` (
   `commentContent` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '评论内容',
   `commentDate` datetime NOT NULL COMMENT '评论时间',
   PRIMARY KEY (`commentId`)
-) ENGINE=InnoDB AUTO_INCREMENT=1022 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1025 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ----------------------------
 -- Records of commentdetails
@@ -78,6 +78,9 @@ INSERT INTO `commentdetails` VALUES ('1018', 'nice', '2020-12-06 06:45:47');
 INSERT INTO `commentdetails` VALUES ('1019', '加油', '2020-12-06 06:50:13');
 INSERT INTO `commentdetails` VALUES ('1020', '太厉害了吧', '2020-12-06 06:51:30');
 INSERT INTO `commentdetails` VALUES ('1021', '秀儿是你吗', '2020-12-06 06:52:13');
+INSERT INTO `commentdetails` VALUES ('1022', '行到水穷处，坐看云起时。', '2020-12-07 00:44:16');
+INSERT INTO `commentdetails` VALUES ('1023', '千山鸟飞绝，万径人踪灭。', '2020-12-07 00:46:25');
+INSERT INTO `commentdetails` VALUES ('1024', '爱而不得是常态，习惯就好了', '2020-12-07 03:20:22');
 
 -- ----------------------------
 -- Table structure for `newsdetail`
@@ -292,6 +295,9 @@ INSERT INTO `news_comment` VALUES ('10001', '1001');
 INSERT INTO `news_comment` VALUES ('10001', '1016');
 INSERT INTO `news_comment` VALUES ('10001', '1018');
 INSERT INTO `news_comment` VALUES ('10002', '1014');
+INSERT INTO `news_comment` VALUES ('10019', '1022');
+INSERT INTO `news_comment` VALUES ('10019', '1023');
+INSERT INTO `news_comment` VALUES ('10022', '1024');
 
 -- ----------------------------
 -- Table structure for `useraccount`
@@ -301,6 +307,7 @@ CREATE TABLE `useraccount` (
   `userId` smallint NOT NULL AUTO_INCREMENT COMMENT '用户id，自增',
   `userName` varchar(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户账号',
   `userPwd` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '密码',
+  `updateDate` datetime DEFAULT NULL,
   PRIMARY KEY (`userId`),
   UNIQUE KEY `userName` (`userName`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1018 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -308,13 +315,13 @@ CREATE TABLE `useraccount` (
 -- ----------------------------
 -- Records of useraccount
 -- ----------------------------
-INSERT INTO `useraccount` VALUES ('1001', 'admin', 'wst123');
-INSERT INTO `useraccount` VALUES ('1004', 'wst1', 'wst123');
-INSERT INTO `useraccount` VALUES ('1008', 'spaceX', 'wst123');
-INSERT INTO `useraccount` VALUES ('1009', 'dream', 'wst123');
-INSERT INTO `useraccount` VALUES ('1010', 'home', 'wst123');
-INSERT INTO `useraccount` VALUES ('1014', 'cms', 'wst123');
-INSERT INTO `useraccount` VALUES ('1017', 'abr', 'wst123');
+INSERT INTO `useraccount` VALUES ('1001', 'admin', 'wst123', null);
+INSERT INTO `useraccount` VALUES ('1004', 'wst1', 'wst123', null);
+INSERT INTO `useraccount` VALUES ('1008', 'spaceX', 'wst123', null);
+INSERT INTO `useraccount` VALUES ('1009', 'dream', 'wst123', null);
+INSERT INTO `useraccount` VALUES ('1010', 'home', 'wst123', null);
+INSERT INTO `useraccount` VALUES ('1014', 'cms', 'wst123', null);
+INSERT INTO `useraccount` VALUES ('1017', 'abr', 'wst123', null);
 
 -- ----------------------------
 -- Table structure for `userdetails`
@@ -325,6 +332,7 @@ CREATE TABLE `userdetails` (
   `nickName` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户昵称',
   `head_img` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '用户头像路径',
   `gender` enum('0','1') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '用户性别',
+  `updateDate` datetime DEFAULT NULL,
   PRIMARY KEY (`userId`),
   CONSTRAINT `userdetails_fk_userid` FOREIGN KEY (`userId`) REFERENCES `useraccount` (`userId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户详情表';
@@ -332,13 +340,13 @@ CREATE TABLE `userdetails` (
 -- ----------------------------
 -- Records of userdetails
 -- ----------------------------
-INSERT INTO `userdetails` VALUES ('1001', '银河日报', '/upload/img/upload_77e67eab340e477e1eb12a4d1a59800f.jpeg', '0');
-INSERT INTO `userdetails` VALUES ('1004', '金星日报', '/upload/img/upload_66058edae9b90a8c778c08160833fc96.jpeg', '0');
-INSERT INTO `userdetails` VALUES ('1008', '木星日报', null, '0');
-INSERT INTO `userdetails` VALUES ('1009', '幸运', '/upload/img/upload_ab5eae0f7be157f39e8f5d37d01faa8f.jpeg', '1');
-INSERT INTO `userdetails` VALUES ('1010', '虚空', '/upload/img/upload_daececcccd20f62163c6fa756bcd03c3.jpeg', '0');
-INSERT INTO `userdetails` VALUES ('1014', '最初的美好', null, '1');
-INSERT INTO `userdetails` VALUES ('1017', '朋友', null, '0');
+INSERT INTO `userdetails` VALUES ('1001', '银河日报', '/upload/img/upload_8b4ee2916a2d5a497176309487bdc48c.jpeg', '1', '2020-12-07 08:21:20');
+INSERT INTO `userdetails` VALUES ('1004', '金星日报', '/upload/img/upload_66058edae9b90a8c778c08160833fc96.jpeg', '0', null);
+INSERT INTO `userdetails` VALUES ('1008', '木星日报', null, '0', null);
+INSERT INTO `userdetails` VALUES ('1009', '幸运', '/upload/img/upload_1f222c2c919aa5c7cfaa615e2cb83ee2.jpeg', '1', '2020-12-07 08:34:24');
+INSERT INTO `userdetails` VALUES ('1010', '虚空', '/upload/img/upload_daececcccd20f62163c6fa756bcd03c3.jpeg', '0', null);
+INSERT INTO `userdetails` VALUES ('1014', '最初的美好', null, '1', null);
+INSERT INTO `userdetails` VALUES ('1017', '朋友', null, '0', null);
 
 -- ----------------------------
 -- Table structure for `user_collect_news`
@@ -357,7 +365,18 @@ CREATE TABLE `user_collect_news` (
 -- ----------------------------
 -- Records of user_collect_news
 -- ----------------------------
+INSERT INTO `user_collect_news` VALUES ('1009', '10001', '2020-12-06');
 INSERT INTO `user_collect_news` VALUES ('1009', '10002', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10003', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10004', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10005', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10007', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10008', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10010', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10013', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10015', '2020-12-06');
+INSERT INTO `user_collect_news` VALUES ('1009', '10019', '2020-12-07');
+INSERT INTO `user_collect_news` VALUES ('1009', '10021', '2020-12-07');
 
 -- ----------------------------
 -- Table structure for `user_comment`
@@ -393,6 +412,9 @@ INSERT INTO `user_comment` VALUES ('1018', '1009');
 INSERT INTO `user_comment` VALUES ('1019', '1009');
 INSERT INTO `user_comment` VALUES ('1020', '1009');
 INSERT INTO `user_comment` VALUES ('1021', '1009');
+INSERT INTO `user_comment` VALUES ('1022', '1009');
+INSERT INTO `user_comment` VALUES ('1023', '1009');
+INSERT INTO `user_comment` VALUES ('1024', '1009');
 INSERT INTO `user_comment` VALUES ('1013', '1010');
 INSERT INTO `user_comment` VALUES ('1014', '1010');
 INSERT INTO `user_comment` VALUES ('1015', '1010');
@@ -416,9 +438,10 @@ CREATE TABLE `user_follow` (
 -- ----------------------------
 -- Records of user_follow
 -- ----------------------------
-INSERT INTO `user_follow` VALUES ('1009', '1001', '2020-12-06');
+INSERT INTO `user_follow` VALUES ('1009', '1001', '2020-12-07');
 INSERT INTO `user_follow` VALUES ('1009', '1004', '2020-12-01');
 INSERT INTO `user_follow` VALUES ('1009', '1008', '2020-12-03');
+INSERT INTO `user_follow` VALUES ('1010', '1001', '2020-12-01');
 
 -- ----------------------------
 -- Table structure for `user_like`

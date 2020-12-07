@@ -10,7 +10,7 @@ class Database {
      * @description 连接池对象
      */
     static pool = this.mysql.createPool({
-        connectionLimit: 88,
+        connectionLimit: 888,
         host: '127.0.0.1',
         user: 'root',
         password: 'password',

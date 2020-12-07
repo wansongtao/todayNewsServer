@@ -1536,7 +1536,7 @@ class Processing {
                 },
                 message: '获取更多子评论成功'
             };
-        } else if (data[0].length === 0) {
+        } else if (data.length === 0) {
             message = {
                 statusCode: 201,
                 message: '没有更多评论了'
