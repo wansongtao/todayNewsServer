@@ -511,6 +511,13 @@ class Processing {
             });
             return;
         }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
+            });
+            return;
+        }
 
         let queryStr = `select userName, nickName, head_img, gender from userdetails as ud, 
             useraccount as ua WHERE ud.userId = ua.userId and ud.userId = ?`;
@@ -572,6 +579,13 @@ class Processing {
             res.send({
                 statusCode: '500',
                 message: '用户身份过期，请重新登录'
+            });
+            return;
+        }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
             });
             return;
         }
@@ -689,6 +703,13 @@ class Processing {
             });
             return;
         }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
+            });
+            return;
+        }
 
         //验证新密码的格式是否正确
         isVerify = Processing._regExpVerify_([{
@@ -767,6 +788,13 @@ class Processing {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录'
+            });
+            return;
+        }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
             });
             return;
         }
@@ -940,21 +968,6 @@ class Processing {
 
         queryParams = Processing._paging_(queryParams, pageSize, currentPage, 10, 0);
 
-        // if (!isNaN(parseInt(pageSize))) {
-        //     queryParams.push(Math.abs(parseInt(pageSize)));
-        // } else {
-        //     queryParams.push(10); //默认一页十条
-        // }
-
-        // if (!isNaN(parseInt(currentPage)) && Math.abs(parseInt(currentPage)) > 0) {
-        //     //页码减一 * 每页条数 = 开始位置
-        //     let beginPosi = Math.abs((parseInt(currentPage) - 1)) * queryParams[1];
-
-        //     queryParams.push(beginPosi);
-        // } else {
-        //     queryParams.push(0); //默认第一页
-        // }
-
         let data = await Processing.database.query(queryStr, queryParams);
 
         if (data[0]) {
@@ -1096,6 +1109,12 @@ class Processing {
                     message: '用户身份过期，请重新登录'
                 };
             }
+            else if (userId === -1) {
+                return {
+                    statusCode: '311',
+                    message: '该账号已在其他地方登录'
+                };
+            }
 
             data.userId = userId;
 
@@ -1197,6 +1216,14 @@ class Processing {
             });
             return;
         }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
+            });
+            return;
+        }
+        
 
         let {
             followUserId
@@ -1296,6 +1323,13 @@ class Processing {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
             });
             return;
         }
@@ -1533,6 +1567,13 @@ class Processing {
             });
             return;
         }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
+            });
+            return;
+        }
 
         let {
             newsId,
@@ -1656,6 +1697,13 @@ class Processing {
             });
             return;
         }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
+            });
+            return;
+        }
 
         let {
             newsId
@@ -1708,6 +1756,13 @@ class Processing {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
             });
             return;
         }
@@ -1772,6 +1827,13 @@ class Processing {
             });
             return;
         }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
+            });
+            return;
+        }
 
         let queryStr = `SELECT ud.userId, ud.nickName, ud.head_img, uf.followDate from userdetails as ud 
         right JOIN (SELECT followUserId, followDate from user_follow where userId = ?) AS uf 
@@ -1823,6 +1885,13 @@ class Processing {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录！'
+            });
+            return;
+        }
+        else if (userId === -1) {
+            res.send({
+                statusCode: '311',
+                message: '该账号已在其他地方登录'
             });
             return;
         }
