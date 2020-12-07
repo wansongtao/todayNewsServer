@@ -510,8 +510,7 @@ class Processing {
                 message: '用户身份过期，请重新登录'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -563,7 +562,6 @@ class Processing {
             authorization
         } = req.headers;
 
-
         if (typeof authorization !== 'string') {
             res.send({
                 statusCode: '300',
@@ -581,8 +579,7 @@ class Processing {
                 message: '用户身份过期，请重新登录'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -628,10 +625,20 @@ class Processing {
 
             data = await Processing.database.update(queryStr, [gender.toString(), userId]);
         } else if (typeof head_img === 'string') {
-            // 修改头像路径
-            let queryStr = 'update userdetails set head_img = ? where userId = ?;'
+            // let queryStr = 'select updateDate from userdetails where userId = ?';
 
-            data = await Processing.database.update(queryStr, [head_img, userId]);
+            // let agoUpdateDate = await Processing.database.query(queryStr, [userId]);
+
+            // if (agoUpdateDate[0]) {
+            //     console.log(agoUpdateDate[0]);
+            // }
+            let updateDate = new Date();
+            updateDate = updateDate.toISOString().replace(/T|Z/g, ' ');
+
+            // 修改头像路径
+            let queryStr = 'update userdetails set head_img = ?, updateDate = ? where userId = ?';
+
+            data = await Processing.database.update(queryStr, [head_img, updateDate, userId]);
         } else {
             res.send({
                 statusCode: '300',
@@ -702,8 +709,7 @@ class Processing {
                 message: '用户身份过期，请重新登录'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -784,17 +790,37 @@ class Processing {
             return;
         }
 
-        if (Processing.token.verifyToken(authorization) === false) {
+        let userId = Processing.token.verifyToken(authorization);
+        if (userId === false) {
             res.send({
                 statusCode: 500,
                 message: '用户身份过期，请重新登录'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
+            });
+            return;
+        }
+
+        let updateDate = new Date();
+        updateDate = updateDate.toISOString().substr(0, 10);
+
+        //获取上次上传头像的时间
+        let queryStr = 'select updateDate from userdetails where userId = ?';
+
+        let agoUpdateDate = await Processing.database.query(queryStr, [userId]);
+
+        if (agoUpdateDate[0] && agoUpdateDate[0].updateDate != null) {
+            agoUpdateDate = agoUpdateDate[0].updateDate.toISOString().substr(0, 10);
+        }
+
+        if (updateDate == agoUpdateDate) {
+            res.send({
+                statusCode: 312,
+                message: '一天之内只能修改一次头像'
             });
             return;
         }
@@ -1108,8 +1134,7 @@ class Processing {
                     statusCode: 500,
                     message: '用户身份过期，请重新登录'
                 };
-            }
-            else if (userId === -1) {
+            } else if (userId === -1) {
                 return {
                     statusCode: '311',
                     message: '该账号已在其他地方登录'
@@ -1215,15 +1240,14 @@ class Processing {
                 message: '用户身份过期，请重新登录！'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
             });
             return;
         }
-        
+
 
         let {
             followUserId
@@ -1325,8 +1349,7 @@ class Processing {
                 message: '用户身份过期，请重新登录！'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -1566,8 +1589,7 @@ class Processing {
                 message: '用户身份过期，请重新登录'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -1696,8 +1718,7 @@ class Processing {
                 message: '用户身份过期，请重新登录！'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -1758,8 +1779,7 @@ class Processing {
                 message: '用户身份过期，请重新登录！'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -1826,8 +1846,7 @@ class Processing {
                 message: '用户身份过期，请重新登录！'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
@@ -1887,8 +1906,7 @@ class Processing {
                 message: '用户身份过期，请重新登录！'
             });
             return;
-        }
-        else if (userId === -1) {
+        } else if (userId === -1) {
             res.send({
                 statusCode: '311',
                 message: '该账号已在其他地方登录'
